@@ -640,13 +640,14 @@
 
     const STORAGE_KEY = "dnevnik-nastyushki-v2";
     const EMAIL_KEY = "dnevnik-nastyushki-email";
+    const MIGRATION_KEY = "dnevnik-nastyushki-cloud-migrated";
+    const AUTH_COOLDOWN_KEY = "dnevnik-nastyushki-auth-next";
     const SUPABASE_URL = "https://akikxtukzvxojyxhtizx.supabase.co";
     const SUPABASE_KEY = "sb_publishable_1Zoj_1Vts2-ZqnFh1S3-hQ_-RqoSPrU";
     const SITE_URL = "https://anastasiablock11.github.io/dnevnik-nastyushki/";
     const cloud = window.supabase?.createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true }
     }) || null;
-    const hadLocalDataAtBoot = Boolean(localStorage.getItem(STORAGE_KEY));
     const reminderOptions = [
       [-1,"Без напоминания"],[0,"В момент события"],[5,"За 5 минут"],[10,"За 10 минут"],[15,"За 15 минут"],[30,"За 30 минут"],
       [60,"За 1 час"],[120,"За 2 часа"],[180,"За 3 часа"],[360,"За 6 часов"],[720,"За 12 часов"],[1440,"За 1 день"],[2880,"За 2 дня"],[10080,"За неделю"]
@@ -679,6 +680,7 @@
     let cloudSyncAgain = false;
     let suppressCloudSync = false;
     let realtimeChannel = null;
+    let authCooldownTimer = null;
 
     const $ = (id) => document.getElementById(id);
     const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -992,6 +994,7 @@
       $("authCodeBlock").hidden = true;
       setAuthMessage("Мы отправим одноразовое письмо. Если в нём будет кнопка вместо цифр, просто нажми её.");
       $("authDialog").showModal();
+      updateAuthCooldownButton();
     }
 
     function setAuthMessage(text, error=false) {
@@ -1002,6 +1005,8 @@
     async function sendAuthCode() {
       const email = $("authEmail").value.trim().toLowerCase();
       if (!email || !email.includes("@")) { setAuthMessage("Проверь адрес электронной почты", true); return; }
+      const nextAllowed = Number(localStorage.getItem(AUTH_COOLDOWN_KEY) || 0);
+      if (Date.now() < nextAllowed) { updateAuthCooldownButton(); setAuthMessage("Новое письмо пока нельзя запрашивать. Дождись окончания таймера.", true); return; }
       localStorage.setItem(EMAIL_KEY, email);
       $("sendAuthCode").disabled = true;
       setAuthMessage("Отправляю письмо…");
@@ -1011,12 +1016,39 @@
           options: { emailRedirectTo: SITE_URL, shouldCreateUser: true }
         });
         if (error) throw error;
+        setAuthCooldown(60);
         $("authCodeBlock").hidden = false;
-        setAuthMessage("Письмо отправлено. Введи код, если он указан, либо нажми кнопку входа в письме.");
+        setAuthMessage("Письмо отправлено. Открой самое свежее письмо на этом устройстве. Новое письмо можно запросить через минуту.");
       } catch (error) {
+        const code = String(error?.code || "");
+        if (code === "over_email_send_rate_limit") setAuthCooldown(3600);
+        else if (code === "over_request_rate_limit" || Number(error?.status) === 429) setAuthCooldown(300);
         setAuthMessage(authErrorText(error), true);
       } finally {
-        $("sendAuthCode").disabled = false;
+        updateAuthCooldownButton();
+      }
+    }
+
+    function setAuthCooldown(seconds) {
+      localStorage.setItem(AUTH_COOLDOWN_KEY, String(Date.now() + seconds * 1000));
+      updateAuthCooldownButton();
+    }
+
+    function updateAuthCooldownButton() {
+      clearTimeout(authCooldownTimer);
+      const button = $("sendAuthCode");
+      const nextAllowed = Number(localStorage.getItem(AUTH_COOLDOWN_KEY) || 0);
+      const left = Math.max(0, Math.ceil((nextAllowed - Date.now()) / 1000));
+      if (left > 0) {
+        const minutes = Math.floor(left / 60);
+        const seconds = left % 60;
+        button.disabled = true;
+        button.textContent = minutes ? `Повторить через ${minutes}:${String(seconds).padStart(2,"0")}` : `Повторить через ${seconds} с`;
+        authCooldownTimer = setTimeout(updateAuthCooldownButton, 1000);
+      } else {
+        button.disabled = false;
+        button.textContent = "Получить код или ссылку";
+        localStorage.removeItem(AUTH_COOLDOWN_KEY);
       }
     }
 
@@ -1042,9 +1074,12 @@
 
     function authErrorText(error) {
       const msg = String(error?.message || error || "");
-      if (/expired/i.test(msg)) return "Код или ссылка уже устарели. Запроси новое письмо.";
-      if (/invalid/i.test(msg)) return "Код не подошёл. Проверь цифры или запроси новое письмо.";
-      if (/rate/i.test(msg)) return "Слишком много попыток. Подожди немного и попробуй снова.";
+      const code = String(error?.code || "");
+      if (/expired/i.test(msg) || code === "otp_expired") return "Код или ссылка уже устарели. Запроси новое письмо после окончания таймера.";
+      if (/invalid/i.test(msg)) return "Код не подошёл. Проверь цифры или используй самое свежее письмо.";
+      if (code === "over_email_send_rate_limit") return "Достигнут лимит отправки писем. Подожди примерно 1 час и не нажимай кнопку повторно.";
+      if (code === "over_request_rate_limit") return "Слишком много запросов с этого устройства. Подожди около 5 минут и попробуй один раз.";
+      if (Number(error?.status) === 429 || /rate/i.test(msg)) return "Сработал временный лимит. Подожди не меньше 5 минут и попробуй один раз.";
       return "Не получилось войти. Попробуй ещё раз.";
     }
 
@@ -1052,13 +1087,26 @@
       authUser = session.user;
       updateAuthUI("syncing", "Загружаю данные из облака…");
       try {
+        const localSnapshot = structuredClone(state);
         const remote = await fetchCloudState();
-        if (remote.hasData) {
+        const migrationKey = `${MIGRATION_KEY}:${authUser.id}`;
+        const needsFirstMerge = !localStorage.getItem(migrationKey) && Boolean(localStorage.getItem(STORAGE_KEY));
+
+        if (needsFirstMerge) {
+          const merged = remote.hasData ? mergeStates(remote.state, localSnapshot) : localSnapshot;
+          replaceStateFromCloud(merged);
+          const ok = await syncCloudState(false);
+          if (!ok) throw new Error("Не удалось перенести локальные данные в облако");
+          localStorage.setItem(migrationKey, "1");
+          toast("Локальные записи объединены с облаком ☁️");
+        } else if (remote.hasData) {
           replaceStateFromCloud(remote.state);
           toast("Данные загружены из облака ☁️");
         } else {
-          await syncCloudState(true);
-          if (hadLocalDataAtBoot) toast("Записи с этого устройства перенесены в облако ☁️");
+          const ok = await syncCloudState(false);
+          if (!ok) throw new Error("Не удалось создать облачную копию");
+          localStorage.setItem(migrationKey, "1");
+          toast("Записи с этого устройства перенесены в облако ☁️");
         }
         startRealtime();
         updateAuthUI("online", "Синхронизировано");
@@ -1067,6 +1115,41 @@
         updateAuthUI("error", "Не удалось загрузить данные");
         toast("Не удалось подключить облако");
       }
+    }
+
+    function mergeStates(remoteState, localState) {
+      const stamp = item => Date.parse(item?.updatedAt || item?.createdAt || 0) || 0;
+      const mergeById = (remoteItems=[], localItems=[]) => {
+        const map = new Map();
+        remoteItems.forEach(item => map.set(item.id, structuredClone(item)));
+        localItems.forEach(item => {
+          const current = map.get(item.id);
+          if (!current || stamp(item) >= stamp(current)) map.set(item.id, structuredClone(item));
+        });
+        return [...map.values()];
+      };
+      const mergeTextMap = (remoteMap={}, localMap={}) => {
+        const result = {...remoteMap};
+        Object.entries(localMap).forEach(([key, value]) => {
+          if (value !== "" && value != null) result[key] = value;
+          else if (!(key in result)) result[key] = value;
+        });
+        return result;
+      };
+      const habitLog = structuredClone(remoteState.habitLog || {});
+      Object.entries(localState.habitLog || {}).forEach(([date, values]) => {
+        habitLog[date] = {...(habitLog[date] || {}), ...(values || {})};
+      });
+      return {
+        tasks: mergeById(remoteState.tasks, localState.tasks),
+        habits: mergeById(remoteState.habits, localState.habits),
+        shopping: mergeById(remoteState.shopping, localState.shopping),
+        habitLog,
+        diary: mergeTextMap(remoteState.diary, localState.diary),
+        mood: {...(remoteState.mood || {}), ...(localState.mood || {})},
+        notified: {...(remoteState.notified || {}), ...(localState.notified || {})},
+        settings: {...defaultState.settings, ...(remoteState.settings || {}), ...(localState.settings || {})}
+      };
     }
 
     function handleSignedOut() {
@@ -1159,8 +1242,8 @@
     }
 
     async function syncCloudState(showToast=false) {
-      if (!authUser || !cloud) return;
-      if (cloudSyncing) { cloudSyncAgain = true; return; }
+      if (!authUser || !cloud) return false;
+      if (cloudSyncing) { cloudSyncAgain = true; return false; }
       cloudSyncing = true;
       cloudSyncAgain = false;
       updateAuthUI("syncing", "Синхронизирую…");
@@ -1204,10 +1287,12 @@
         if (settingsError) throw settingsError;
         updateAuthUI("online", "Синхронизировано");
         if (showToast) toast("Облако синхронизировано ☁️");
+        return true;
       } catch (error) {
         console.error(error);
         updateAuthUI("error", "Ошибка синхронизации");
         toast("Не удалось сохранить изменения в облаке");
+        return false;
       } finally {
         cloudSyncing = false;
         if (cloudSyncAgain) { cloudSyncAgain = false; queueCloudSync(); }
