@@ -9,6 +9,7 @@
   <link rel="icon" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
   <title>Дневник Настюшки</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --bg: #fff8fb;
@@ -338,7 +339,7 @@
     @media (max-width: 720px) {
       main { padding:18px 13px 104px; }
       .topbar { align-items:flex-start; }
-      .top-actions .btn:not(.primary) { display:none; }
+      .top-actions .btn:not(.primary):not(#accountTop) { display:none; }
       .hero { grid-template-columns:1fr; padding:18px; }
       .hero-flower { display:none; }
       .quick-add { grid-template-columns:minmax(0,1fr) auto; }
@@ -369,6 +370,30 @@
       .day { min-height:48px; border-radius:11px; }
       .day-dots { left:5px; right:5px; bottom:5px; }
     }
+
+
+    .cloud-pill {
+      display:inline-flex; align-items:center; gap:7px; max-width:230px;
+    }
+    .cloud-dot { width:8px; height:8px; border-radius:999px; background:var(--muted); flex:0 0 auto; }
+    .cloud-dot.online { background:var(--green); box-shadow:0 0 0 4px color-mix(in srgb,var(--green) 15%,transparent); }
+    .cloud-dot.syncing { background:var(--orange); animation:pulseCloud 1s infinite; }
+    .cloud-dot.error { background:var(--danger); }
+    @keyframes pulseCloud { 50% { opacity:.35; } }
+    .auth-step { display:grid; gap:12px; }
+    .auth-code-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:9px; }
+    .auth-message { min-height:20px; color:var(--muted); font-size:13px; line-height:1.45; }
+    .auth-message.error { color:var(--danger); }
+    .cloud-account { display:grid; gap:12px; }
+    .cloud-account-line { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    .cloud-email { overflow-wrap:anywhere; color:var(--muted); font-size:13px; }
+    .sync-note { border:1px solid var(--line); border-radius:14px; padding:12px; background:color-mix(in srgb,var(--lilac) 7%,var(--surface-solid)); color:var(--muted); font-size:12px; line-height:1.55; }
+    @media (max-width: 720px) {
+      #accountTop { width:44px; padding:0; font-size:0; }
+      #accountTop::before { content:"☁️"; font-size:18px; }
+      .auth-code-row { grid-template-columns:1fr; }
+    }
+
   </style>
 </head>
 <body>
@@ -388,8 +413,8 @@
         <button class="nav-btn" data-view="settings"><span class="nav-icon">⚙️</span><span>Настройки</span></button>
       </nav>
       <div class="sidebar-note">
-        <strong>Первая мобильная версия</strong>
-        Сейчас проверяем дизайн и удобство. Следующим шагом подключим облако — после этого ссылка и данные будут общими на телефоне и компьютере.
+        <strong id="sidebarCloudTitle">Облачная синхронизация</strong>
+        <span id="sidebarCloudText">Войди по электронной почте, чтобы дела и записи были одинаковыми на телефоне и компьютере.</span>
       </div>
     </aside>
 
@@ -401,6 +426,7 @@
           <p class="date-line" id="pageDate"></p>
         </div>
         <div class="top-actions">
+          <button class="btn cloud-pill" id="accountTop"><span class="cloud-dot" id="cloudDot"></span><span id="accountTopText">Войти</span></button>
           <button class="btn" id="notifyTop">🔔 Уведомления</button>
           <button class="btn primary" id="addTaskTop">＋ Новое дело</button>
         </div>
@@ -411,7 +437,7 @@
           <section class="card hero">
             <div>
               <h3 id="heroTitle">Что запланируем?</h3>
-              <p>Добавляй дела, привычки, покупки и мысли. Позже всё это будет синхронизироваться по одной постоянной ссылке.</p>
+              <p>Добавляй дела, привычки, покупки и мысли. После входа всё синхронизируется по одной постоянной ссылке на телефоне и компьютере.</p>
               <form class="quick-add" id="quickAddForm">
                 <input id="quickTitle" maxlength="180" placeholder="Например: забрать посылку" autocomplete="off">
                 <button class="btn primary" type="submit">Добавить</button>
@@ -530,12 +556,20 @@
             <div style="margin-top:15px"><button class="btn primary" id="enableNotifications">🔔 Разрешить уведомления</button></div>
           </div></section>
 
-          <section class="card"><div class="card-head"><h3>Данные</h3></div><div class="card-body">
-            <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" id="exportData">Скачать резервную копию</button><button class="btn small" id="importData">Загрузить копию</button><input id="importFile" type="file" accept="application/json" hidden></div>
-            <div class="subtle" style="margin-top:12px;line-height:1.5">Пока данные хранятся только в этом браузере. После подключения Supabase они будут доступны по одной ссылке на всех твоих устройствах.</div>
+          <section class="card"><div class="card-head"><h3>Облако и вход</h3></div><div class="card-body">
+            <div class="cloud-account">
+              <div class="cloud-account-line"><div><strong id="cloudStatus">Не выполнен вход</strong><div class="cloud-email" id="cloudEmail">Данные сохраняются только на этом устройстве</div></div><span class="cloud-dot" id="settingsCloudDot"></span></div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="cloudLogin">Войти по почте</button><button class="btn" id="cloudSync" hidden>Синхронизировать сейчас</button><button class="btn danger" id="cloudLogout" hidden>Выйти</button></div>
+              <div class="sync-note">При первом входе открой обновлённый сайт на устройстве, где уже есть твои записи. Они автоматически перенесутся в облако. После этого войди с той же почтой на другом устройстве.</div>
+            </div>
           </div></section>
 
-          <section class="card"><div class="card-head"><h3>О сайте</h3></div><div class="card-body"><div class="subtle" style="line-height:1.7"><strong style="color:var(--text)">Дневник Настюшки</strong><br>Версия 0.2 — персональный макет.<br><br>Следующий этап: постоянная ссылка, личный вход и облачная синхронизация.</div></div></section>
+          <section class="card"><div class="card-head"><h3>Данные</h3></div><div class="card-body">
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" id="exportData">Скачать резервную копию</button><button class="btn small" id="importData">Загрузить копию</button><input id="importFile" type="file" accept="application/json" hidden></div>
+            <div class="subtle" style="margin-top:12px;line-height:1.5">Резервную копию можно скачать в любой момент. При выполненном входе основная копия данных хранится в защищённом облаке и синхронизируется между устройствами.</div>
+          </div></section>
+
+          <section class="card"><div class="card-head"><h3>О сайте</h3></div><div class="card-body"><div class="subtle" style="line-height:1.7"><strong style="color:var(--text)">Дневник Настюшки</strong><br>Версия 0.3 — облачная синхронизация и личный вход.<br><br>Записи защищены входом и правилами доступа Supabase.</div></div></section>
         </div>
       </section>
     </main>
@@ -582,6 +616,22 @@
     </form>
   </dialog>
 
+  <dialog id="authDialog">
+    <form id="authForm">
+      <div class="modal-head"><h3>Вход в Дневник Настюшки</h3><button class="icon-btn" type="button" data-close="authDialog">✕</button></div>
+      <div class="modal-body">
+        <div class="auth-step">
+          <div class="field"><label for="authEmail">Электронная почта</label><input type="email" id="authEmail" required autocomplete="email" placeholder="name@example.com"></div>
+          <button class="btn primary" type="button" id="sendAuthCode">Получить код или ссылку</button>
+          <div id="authCodeBlock" hidden>
+            <div class="field"><label for="authCode">Код из письма</label><div class="auth-code-row"><input inputmode="numeric" autocomplete="one-time-code" id="authCode" maxlength="8" placeholder="6-значный код"><button class="btn primary" type="button" id="verifyAuthCode">Войти</button></div></div>
+          </div>
+          <div class="auth-message" id="authMessage">Мы отправим одноразовое письмо. Если в нём будет кнопка вместо цифр, просто нажми её.</div>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
   <div class="toast-wrap" id="toastWrap"></div>
 
   <script>
@@ -589,6 +639,14 @@
     "use strict";
 
     const STORAGE_KEY = "dnevnik-nastyushki-v2";
+    const EMAIL_KEY = "dnevnik-nastyushki-email";
+    const SUPABASE_URL = "https://akikxtukzvxojyxhtizx.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_1Zoj_1Vts2-ZqnFh1S3-hQ_-RqoSPrU";
+    const SITE_URL = "https://anastasiablock11.github.io/dnevnik-nastyushki/";
+    const cloud = window.supabase?.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true }
+    }) || null;
+    const hadLocalDataAtBoot = Boolean(localStorage.getItem(STORAGE_KEY));
     const reminderOptions = [
       [-1,"Без напоминания"],[0,"В момент события"],[5,"За 5 минут"],[10,"За 10 минут"],[15,"За 15 минут"],[30,"За 30 минут"],
       [60,"За 1 час"],[120,"За 2 часа"],[180,"За 3 часа"],[360,"За 6 часов"],[720,"За 12 часов"],[1440,"За 1 день"],[2880,"За 2 дня"],[10080,"За неделю"]
@@ -613,13 +671,21 @@
     let selectedDate = todayKey();
     let calendarMonth = startOfMonth(new Date());
     let saveTimer = null;
+    let authUser = null;
+    let authReady = false;
+    let cloudSyncTimer = null;
+    let cloudRefreshTimer = null;
+    let cloudSyncing = false;
+    let cloudSyncAgain = false;
+    let suppressCloudSync = false;
+    let realtimeChannel = null;
 
     const $ = (id) => document.getElementById(id);
     const $$ = (selector) => [...document.querySelectorAll(selector)];
 
     init();
 
-    function init() {
+    async function init() {
       fillReminderSelects();
       applySettings();
       bindEvents();
@@ -631,6 +697,8 @@
       if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
         navigator.serviceWorker.register("sw.js").catch(() => {});
       }
+      updateAuthUI();
+      await initCloud();
     }
 
     function loadState() {
@@ -650,7 +718,14 @@
       } catch { return structuredClone(defaultState); }
     }
 
-    function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* preview environments may block storage */ } }
+    function saveState() {
+      persistLocalState();
+      if (!suppressCloudSync) queueCloudSync();
+    }
+
+    function persistLocalState() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* preview environments may block storage */ }
+    }
 
     function fillReminderSelects() {
       const html = reminderOptions.map(([value,label]) => `<option value="${value}">${label}</option>`).join("");
@@ -694,6 +769,15 @@
       $("exportData").addEventListener("click", exportData);
       $("importData").addEventListener("click", () => $("importFile").click());
       $("importFile").addEventListener("change", importData);
+
+      $("accountTop").addEventListener("click", () => authUser ? switchView("settings") : openAuthDialog());
+      $("cloudLogin").addEventListener("click", openAuthDialog);
+      $("cloudLogout").addEventListener("click", signOutCloud);
+      $("cloudSync").addEventListener("click", manualCloudSync);
+      $("sendAuthCode").addEventListener("click", sendAuthCode);
+      $("verifyAuthCode").addEventListener("click", verifyAuthCode);
+      $("authCode").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); verifyAuthCode(); } });
+      $("authForm").addEventListener("submit", e => e.preventDefault());
 
       window.addEventListener("storage", () => { state=loadState(); applySettings(); renderAll(); });
     }
@@ -874,6 +958,298 @@
     function renderBadges(){const todayActive=state.tasks.filter(t=>t.date===todayKey()&&!t.done).length,allActive=state.tasks.filter(t=>!t.done).length,habitsLeft=state.habits.filter(h=>!isHabitDone(h.id,todayKey())).length,shoppingLeft=state.shopping.filter(i=>!i.done).length;$("badgeToday").textContent=todayActive;$("badgeCalendar").textContent=allActive;$("badgeHabits").textContent=habitsLeft;$("badgeShopping").textContent=shoppingLeft;}
 
     function applySettings(){document.documentElement.dataset.theme=state.settings.theme;document.documentElement.dataset.accent=state.settings.accent;document.documentElement.dataset.pattern=String(state.settings.pattern);document.documentElement.dataset.compact=String(state.settings.compact);$("darkToggle").checked=state.settings.theme==="dark";$("patternToggle").checked=state.settings.pattern;$("compactToggle").checked=state.settings.compact;$("defaultReminder").value=String(state.settings.defaultReminder);$$('.palette').forEach(b=>b.classList.toggle('active',b.dataset.palette===state.settings.accent));}
+
+
+    async function initCloud() {
+      if (!cloud) {
+        authReady = true;
+        updateAuthUI("error", "Не удалось загрузить модуль облака");
+        return;
+      }
+      try {
+        const { data, error } = await cloud.auth.getSession();
+        if (error) throw error;
+        authReady = true;
+        if (data.session) await handleSignedIn(data.session);
+        else updateAuthUI();
+        cloud.auth.onAuthStateChange((event, session) => {
+          setTimeout(async () => {
+            if (session && (!authUser || authUser.id !== session.user.id)) await handleSignedIn(session);
+            if (!session && event === "SIGNED_OUT") handleSignedOut();
+          }, 0);
+        });
+      } catch (error) {
+        authReady = true;
+        updateAuthUI("error", "Ошибка подключения к облаку");
+        console.error(error);
+      }
+    }
+
+    function openAuthDialog() {
+      if (!cloud) { toast("Облако сейчас недоступно"); return; }
+      $("authEmail").value = localStorage.getItem(EMAIL_KEY) || authUser?.email || "";
+      $("authCode").value = "";
+      $("authCodeBlock").hidden = true;
+      setAuthMessage("Мы отправим одноразовое письмо. Если в нём будет кнопка вместо цифр, просто нажми её.");
+      $("authDialog").showModal();
+    }
+
+    function setAuthMessage(text, error=false) {
+      $("authMessage").textContent = text;
+      $("authMessage").classList.toggle("error", error);
+    }
+
+    async function sendAuthCode() {
+      const email = $("authEmail").value.trim().toLowerCase();
+      if (!email || !email.includes("@")) { setAuthMessage("Проверь адрес электронной почты", true); return; }
+      localStorage.setItem(EMAIL_KEY, email);
+      $("sendAuthCode").disabled = true;
+      setAuthMessage("Отправляю письмо…");
+      try {
+        const { error } = await cloud.auth.signInWithOtp({
+          email,
+          options: { emailRedirectTo: SITE_URL, shouldCreateUser: true }
+        });
+        if (error) throw error;
+        $("authCodeBlock").hidden = false;
+        setAuthMessage("Письмо отправлено. Введи код, если он указан, либо нажми кнопку входа в письме.");
+      } catch (error) {
+        setAuthMessage(authErrorText(error), true);
+      } finally {
+        $("sendAuthCode").disabled = false;
+      }
+    }
+
+    async function verifyAuthCode() {
+      const email = $("authEmail").value.trim().toLowerCase();
+      const token = $("authCode").value.trim().replace(/\s/g, "");
+      if (!email || !token) { setAuthMessage("Введи почту и код из письма", true); return; }
+      $("verifyAuthCode").disabled = true;
+      setAuthMessage("Проверяю код…");
+      try {
+        const { data, error } = await cloud.auth.verifyOtp({ email, token, type:"email" });
+        if (error) throw error;
+        if (data.session) {
+          $("authDialog").close();
+          toast("Вход выполнен ☁️");
+        }
+      } catch (error) {
+        setAuthMessage(authErrorText(error), true);
+      } finally {
+        $("verifyAuthCode").disabled = false;
+      }
+    }
+
+    function authErrorText(error) {
+      const msg = String(error?.message || error || "");
+      if (/expired/i.test(msg)) return "Код или ссылка уже устарели. Запроси новое письмо.";
+      if (/invalid/i.test(msg)) return "Код не подошёл. Проверь цифры или запроси новое письмо.";
+      if (/rate/i.test(msg)) return "Слишком много попыток. Подожди немного и попробуй снова.";
+      return "Не получилось войти. Попробуй ещё раз.";
+    }
+
+    async function handleSignedIn(session) {
+      authUser = session.user;
+      updateAuthUI("syncing", "Загружаю данные из облака…");
+      try {
+        const remote = await fetchCloudState();
+        if (remote.hasData) {
+          replaceStateFromCloud(remote.state);
+          toast("Данные загружены из облака ☁️");
+        } else {
+          await syncCloudState(true);
+          if (hadLocalDataAtBoot) toast("Записи с этого устройства перенесены в облако ☁️");
+        }
+        startRealtime();
+        updateAuthUI("online", "Синхронизировано");
+      } catch (error) {
+        console.error(error);
+        updateAuthUI("error", "Не удалось загрузить данные");
+        toast("Не удалось подключить облако");
+      }
+    }
+
+    function handleSignedOut() {
+      authUser = null;
+      if (realtimeChannel && cloud) cloud.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+      updateAuthUI();
+      toast("Выход выполнен. Локальная копия осталась на устройстве.");
+    }
+
+    async function signOutCloud() {
+      if (!cloud) return;
+      if (!confirm("Выйти из облачного аккаунта? Локальная копия записей останется на этом устройстве.")) return;
+      const { error } = await cloud.auth.signOut();
+      if (error) toast("Не получилось выйти");
+    }
+
+    function updateAuthUI(mode, detail) {
+      const signed = Boolean(authUser);
+      const email = authUser?.email || "";
+      let status = detail || (signed ? "Синхронизировано" : (authReady ? "Не выполнен вход" : "Проверяю вход…"));
+      let dotClass = mode || (signed ? "online" : "");
+      $("accountTopText").textContent = signed ? "Облако" : "Войти";
+      $("cloudStatus").textContent = status;
+      $("cloudEmail").textContent = signed ? email : "Данные сохраняются только на этом устройстве";
+      $("cloudLogin").hidden = signed;
+      $("cloudLogout").hidden = !signed;
+      $("cloudSync").hidden = !signed;
+      $("sidebarCloudTitle").textContent = signed ? "Облако подключено" : "Облачная синхронизация";
+      $("sidebarCloudText").textContent = signed ? `${email} · ${status}` : "Войди по электронной почте, чтобы дела и записи были одинаковыми на телефоне и компьютере.";
+      [$("cloudDot"), $("settingsCloudDot")].forEach(dot => {
+        dot.className = `cloud-dot${dotClass ? ` ${dotClass}` : ""}`;
+      });
+    }
+
+    function replaceStateFromCloud(nextState) {
+      suppressCloudSync = true;
+      state = nextState;
+      persistLocalState();
+      suppressCloudSync = false;
+      applySettings();
+      renderAll();
+    }
+
+    async function fetchCloudState() {
+      const requests = await Promise.all([
+        cloud.from("tasks").select("*"),
+        cloud.from("habits").select("*"),
+        cloud.from("habit_logs").select("*"),
+        cloud.from("shopping_items").select("*"),
+        cloud.from("diary_entries").select("*"),
+        cloud.from("user_settings").select("*").maybeSingle()
+      ]);
+      const firstError = requests.find(r => r.error)?.error;
+      if (firstError) throw firstError;
+      const [taskRes, habitRes, logRes, shoppingRes, diaryRes, settingsRes] = requests;
+      const tasks = (taskRes.data || []).map(t => ({
+        id:t.id, title:t.title, date:t.task_date, time:t.task_time ? String(t.task_time).slice(0,5) : "",
+        priority:t.priority, category:t.category || "", reminder:Number(t.reminder_minutes), note:t.note || "",
+        done:Boolean(t.done), doneAt:t.done_at || null, createdAt:t.created_at, updatedAt:t.updated_at
+      }));
+      const habits = (habitRes.data || []).filter(h => !h.archived).map(h => ({ id:h.id, title:h.title, emoji:h.emoji || "✨", createdAt:h.created_at, updatedAt:h.updated_at }));
+      const habitLog = {};
+      (logRes.data || []).forEach(row => { if (row.done) { habitLog[row.log_date] = habitLog[row.log_date] || {}; habitLog[row.log_date][row.habit_id] = true; } });
+      const shopping = (shoppingRes.data || []).map(i => ({ id:i.id, title:i.title, qty:i.quantity || "", category:i.category || "Другое", done:Boolean(i.done), createdAt:i.created_at, updatedAt:i.updated_at }));
+      const diary = {}, mood = {};
+      (diaryRes.data || []).forEach(e => { diary[e.entry_date] = e.content || ""; mood[e.entry_date] = Number(e.mood || 0); });
+      const settings = settingsRes.data ? {
+        theme:settingsRes.data.theme || "light", accent:settingsRes.data.accent || "mix",
+        pattern:Boolean(settingsRes.data.pattern), compact:Boolean(settingsRes.data.compact),
+        defaultReminder:Number(settingsRes.data.default_reminder ?? 60)
+      } : structuredClone(defaultState.settings);
+      const nextState = {
+        tasks, habits, habitLog, shopping, diary, mood, notified:{}, settings
+      };
+      const hasData = tasks.length + habits.length + (logRes.data || []).length + shopping.length + (diaryRes.data || []).length > 0 || Boolean(settingsRes.data);
+      return { state:nextState, hasData };
+    }
+
+    function queueCloudSync() {
+      if (!authUser || !cloud) return;
+      clearTimeout(cloudSyncTimer);
+      updateAuthUI("syncing", "Сохраняю изменения…");
+      cloudSyncTimer = setTimeout(() => syncCloudState(false), 500);
+    }
+
+    async function manualCloudSync() {
+      if (!authUser) { openAuthDialog(); return; }
+      await syncCloudState(true);
+    }
+
+    async function syncCloudState(showToast=false) {
+      if (!authUser || !cloud) return;
+      if (cloudSyncing) { cloudSyncAgain = true; return; }
+      cloudSyncing = true;
+      cloudSyncAgain = false;
+      updateAuthUI("syncing", "Синхронизирую…");
+      try {
+        const userId = authUser.id;
+        const now = new Date().toISOString();
+        const taskRows = state.tasks.map(t => ({
+          id:t.id, user_id:userId, title:t.title, task_date:t.date, task_time:t.time || null,
+          priority:t.priority || "medium", category:t.category || "", reminder_minutes:Number(t.reminder ?? 60),
+          note:t.note || "", done:Boolean(t.done), done_at:t.doneAt || null,
+          created_at:t.createdAt || now, updated_at:t.updatedAt || now
+        }));
+        const habitRows = state.habits.map(h => ({
+          id:h.id, user_id:userId, title:h.title, emoji:h.emoji || "✨", archived:false,
+          created_at:h.createdAt || now, updated_at:h.updatedAt || now
+        }));
+        const logRows = [];
+        Object.entries(state.habitLog || {}).forEach(([date, values]) => Object.entries(values || {}).forEach(([habitId, done]) => {
+          if (done) logRows.push({ id:`${userId}|${habitId}|${date}`, user_id:userId, habit_id:habitId, log_date:date, done:true, created_at:now });
+        }));
+        const shoppingRows = state.shopping.map(i => ({
+          id:i.id, user_id:userId, title:i.title, quantity:i.qty || "", category:i.category || "Другое",
+          done:Boolean(i.done), created_at:i.createdAt || now, updated_at:i.updatedAt || now
+        }));
+        const diaryDates = new Set([...Object.keys(state.diary || {}), ...Object.keys(state.mood || {})]);
+        const diaryRows = [...diaryDates].map(date => ({
+          id:`${userId}|${date}`, user_id:userId, entry_date:date, content:state.diary?.[date] || "",
+          mood:Number(state.mood?.[date] || 0), created_at:now, updated_at:now
+        }));
+
+        await syncTable("tasks", taskRows);
+        await syncTable("habits", habitRows);
+        await syncTable("habit_logs", logRows);
+        await syncTable("shopping_items", shoppingRows);
+        await syncTable("diary_entries", diaryRows);
+        const { error:settingsError } = await cloud.from("user_settings").upsert({
+          user_id:userId, theme:state.settings.theme, accent:state.settings.accent,
+          pattern:Boolean(state.settings.pattern), compact:Boolean(state.settings.compact),
+          default_reminder:Number(state.settings.defaultReminder), updated_at:now
+        }, { onConflict:"user_id" });
+        if (settingsError) throw settingsError;
+        updateAuthUI("online", "Синхронизировано");
+        if (showToast) toast("Облако синхронизировано ☁️");
+      } catch (error) {
+        console.error(error);
+        updateAuthUI("error", "Ошибка синхронизации");
+        toast("Не удалось сохранить изменения в облаке");
+      } finally {
+        cloudSyncing = false;
+        if (cloudSyncAgain) { cloudSyncAgain = false; queueCloudSync(); }
+      }
+    }
+
+    async function syncTable(table, rows) {
+      const { data:existing, error:selectError } = await cloud.from(table).select("id");
+      if (selectError) throw selectError;
+      if (rows.length) {
+        const { error:upsertError } = await cloud.from(table).upsert(rows, { onConflict:"id" });
+        if (upsertError) throw upsertError;
+      }
+      const keep = new Set(rows.map(r => r.id));
+      const stale = (existing || []).map(r => r.id).filter(id => !keep.has(id));
+      if (stale.length) {
+        const { error:deleteError } = await cloud.from(table).delete().in("id", stale);
+        if (deleteError) throw deleteError;
+      }
+    }
+
+    function startRealtime() {
+      if (!cloud || !authUser) return;
+      if (realtimeChannel) cloud.removeChannel(realtimeChannel);
+      realtimeChannel = cloud.channel(`dnevnik-${authUser.id}`);
+      ["tasks","habits","habit_logs","shopping_items","diary_entries","user_settings"].forEach(table => {
+        realtimeChannel.on("postgres_changes", { event:"*", schema:"public", table }, queueCloudRefresh);
+      });
+      realtimeChannel.subscribe();
+    }
+
+    function queueCloudRefresh() {
+      clearTimeout(cloudRefreshTimer);
+      cloudRefreshTimer = setTimeout(async () => {
+        if (cloudSyncing) { queueCloudRefresh(); return; }
+        try {
+          const remote = await fetchCloudState();
+          if (remote.hasData) replaceStateFromCloud(remote.state);
+          updateAuthUI("online", "Синхронизировано");
+        } catch (error) { console.error(error); }
+      }, 900);
+    }
 
     async function requestNotifications(){if(!("Notification" in window)){toast("Этот браузер не поддерживает уведомления");return;}const p=await Notification.requestPermission();updateNotificationButtons();toast(p==="granted"?"Уведомления включены 🔔":"Разрешение не выдано");}
     function updateNotificationButtons(){const on="Notification" in window&&Notification.permission==="granted";$("notifyTop").textContent=on?"🔔 Включены":"🔔 Уведомления";$("enableNotifications").textContent=on?"🔔 Уведомления включены":"🔔 Разрешить уведомления";}
