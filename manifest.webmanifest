@@ -1,0 +1,14 @@
+{
+  "name": "Дневник Настюшки",
+  "short_name": "Настюшкин дневник",
+  "description": "Личный календарь, дневник, привычки и список покупок",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fff8fb",
+  "theme_color": "#b76f8c",
+  "lang": "ru",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}
