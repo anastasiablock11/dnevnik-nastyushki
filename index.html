@@ -245,20 +245,33 @@
     .habit-toggle.checked { color:white; border-color:transparent; background:linear-gradient(145deg,var(--rose-deep),var(--lilac-deep)); }
 
     .calendar-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
-    .calendar-title { font-weight:800; font-size:18px; text-transform:capitalize; }
+    .calendar-title { font-weight:800; font-size:18px; text-transform:none; }
     .calendar { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; }
     .weekday { padding:6px 2px; color:var(--muted); font-size:11px; text-align:center; }
+    .weekday.weekend-label { color:color-mix(in srgb,var(--rose-deep) 72%,var(--muted)); }
     .day {
       min-height:62px; border:1px solid var(--line); border-radius:14px; background:color-mix(in srgb,var(--surface-solid) 84%,transparent);
       padding:7px; text-align:left; position:relative;
     }
+    .day.weekend { background:color-mix(in srgb,var(--rose) 7%,var(--surface-solid)); }
+    .day.holiday { background:color-mix(in srgb,var(--rose) 15%,var(--surface-solid)); border-color:color-mix(in srgb,var(--rose) 42%,var(--line)); }
     .day.muted { opacity:.42; }
-    .day.today { border-color:var(--rose); }
+    .day.today { border-color:var(--rose); box-shadow:0 0 0 1px color-mix(in srgb,var(--rose) 38%,transparent); }
     .day.selected { color:white; border-color:transparent; background:linear-gradient(145deg,var(--rose-deep),var(--lilac-deep)); }
     .day-number { font-weight:750; }
-    .day-dots { position:absolute; left:7px; right:7px; bottom:7px; display:flex; gap:3px; flex-wrap:wrap; }
-    .dot { width:6px; height:6px; border-radius:999px; background:var(--rose); }
-    .day.selected .dot { background:white; opacity:.9; }
+    .holiday-mark { position:absolute; top:6px; right:7px; font-size:9px; line-height:1; color:var(--rose-deep); }
+    .day.selected .holiday-mark { color:white; }
+    .day-dots { position:absolute; left:7px; right:7px; bottom:7px; display:flex; align-items:center; gap:4px; flex-wrap:wrap; min-height:10px; }
+    .dot { width:7px; height:7px; border-radius:999px; background:#9a7aa5; box-shadow:0 0 0 1px color-mix(in srgb,var(--surface-solid) 65%,transparent); }
+    .dot.priority-low { width:5px; height:5px; }
+    .dot.priority-medium { width:7px; height:7px; }
+    .dot.priority-high { width:10px; height:10px; }
+    .dot.category-work { background:#4f86d9; }
+    .dot.category-home { background:#67a979; }
+    .dot.category-health { background:#e07b86; }
+    .dot.category-personal { background:#a875c2; }
+    .dot.category-other { background:#d39a4a; }
+    .day.selected .dot { box-shadow:0 0 0 1px rgba(255,255,255,.82); }
 
     .shopping-add { display:grid; grid-template-columns:minmax(0,1fr) 130px 80px auto; gap:8px; margin-bottom:14px; }
     .shopping-item {
@@ -572,7 +585,7 @@
             <div class="subtle" style="margin-top:12px;line-height:1.5">Резервную копию можно скачать в любой момент. При выполненном входе основная копия данных хранится в защищённом облаке и синхронизируется между устройствами.</div>
           </div></section>
 
-          <section class="card"><div class="card-head"><h3>О сайте</h3></div><div class="card-body"><div class="subtle" style="line-height:1.7"><strong style="color:var(--text)">Дневник Настюшки</strong><br>Версия 0.5 — облачная синхронизация, вход по паролю и фоновые push-уведомления.<br><br>Записи защищены входом и правилами доступа Supabase.</div></div></section>
+          <section class="card"><div class="card-head"><h3>О сайте</h3></div><div class="card-body"><div class="subtle" style="line-height:1.7"><strong style="color:var(--text)">Дневник Настюшки</strong><br>Версия 0.6 — безопасная синхронизация, автокопии, праздники и цветные отметки в календаре.<br><br>Записи защищены входом и правилами доступа Supabase.</div></div></section>
         </div>
       </section>
     </main>
@@ -658,6 +671,8 @@
     const EMAIL_KEY = "dnevnik-nastyushki-email";
     const MIGRATION_KEY = "dnevnik-nastyushki-cloud-migrated";
     const AUTH_COOLDOWN_KEY = "dnevnik-nastyushki-auth-next";
+    const BACKUP_KEY = "dnevnik-nastyushki-backups-v1";
+    const SYNC_META_KEY = "dnevnik-nastyushki-sync-meta-v1";
     const SUPABASE_URL = "https://akikxtukzvxojyxhtizx.supabase.co";
     const SUPABASE_KEY = "sb_publishable_1Zoj_1Vts2-ZqnFh1S3-hQ_-RqoSPrU";
     const SITE_URL = "https://anastasiablock11.github.io/dnevnik-nastyushki/";
@@ -685,6 +700,7 @@
     };
 
     let state = loadState();
+    let syncMeta = loadSyncMeta();
     let activeView = "today";
     let selectedDate = todayKey();
     let calendarMonth = startOfMonth(new Date());
@@ -697,6 +713,7 @@
     let cloudSyncAgain = false;
     let suppressCloudSync = false;
     let realtimeChannel = null;
+    let cloudPollTimer = null;
     let authCooldownTimer = null;
     let pushEnabled = false;
 
@@ -712,10 +729,11 @@
       $("diaryDate").value = todayKey();
       renderAll();
       updateHeader();
+      saveRollingBackup("Запуск приложения", false);
       checkReminders();
       setInterval(checkReminders, 30000);
       if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-        navigator.serviceWorker.register("./sw.js?v=6", { scope: "./" }).then(registration => registration.update()).catch(console.error);
+        navigator.serviceWorker.register("./sw.js?v=7", { scope: "./" }).then(registration => registration.update()).catch(console.error);
       }
       updateAuthUI();
       await initCloud();
@@ -740,11 +758,102 @@
 
     function saveState() {
       persistLocalState();
+      persistSyncMeta();
       if (!suppressCloudSync) queueCloudSync();
     }
 
     function persistLocalState() {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* preview environments may block storage */ }
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        saveRollingBackup("Автокопия", false);
+      } catch { /* preview environments may block storage */ }
+    }
+
+    function emptySyncMeta() {
+      return {
+        dirty: { tasks:{}, habits:{}, shopping:{}, diary:{}, habitLogs:{} },
+        deletes: { tasks:{}, habits:{}, shopping:{}, habitLogs:{} },
+        settingsDirty: false
+      };
+    }
+
+    function loadSyncMeta() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(SYNC_META_KEY) || "null");
+        const base = emptySyncMeta();
+        if (!parsed) return base;
+        return {
+          dirty: {
+            tasks:{...(parsed.dirty?.tasks||{})}, habits:{...(parsed.dirty?.habits||{})}, shopping:{...(parsed.dirty?.shopping||{})},
+            diary:{...(parsed.dirty?.diary||{})}, habitLogs:{...(parsed.dirty?.habitLogs||{})}
+          },
+          deletes: {
+            tasks:{...(parsed.deletes?.tasks||{})}, habits:{...(parsed.deletes?.habits||{})}, shopping:{...(parsed.deletes?.shopping||{})},
+            habitLogs:{...(parsed.deletes?.habitLogs||{})}
+          },
+          settingsDirty:Boolean(parsed.settingsDirty)
+        };
+      } catch { return emptySyncMeta(); }
+    }
+
+    function persistSyncMeta() {
+      try { localStorage.setItem(SYNC_META_KEY, JSON.stringify(syncMeta)); } catch {}
+    }
+
+    function markDirty(bucket, id) {
+      if (!id || !syncMeta.dirty[bucket]) return;
+      syncMeta.dirty[bucket][id] = new Date().toISOString();
+      if (syncMeta.deletes[bucket]) delete syncMeta.deletes[bucket][id];
+      persistSyncMeta();
+    }
+
+    function markDeleted(bucket, id) {
+      if (!id || !syncMeta.deletes[bucket]) return;
+      saveRollingBackup("Перед удалением", true);
+      syncMeta.deletes[bucket][id] = new Date().toISOString();
+      if (syncMeta.dirty[bucket]) delete syncMeta.dirty[bucket][id];
+      persistSyncMeta();
+    }
+
+    function markSettingsDirty() { syncMeta.settingsDirty = true; persistSyncMeta(); }
+
+    function hasPendingCloudChanges() {
+      return syncMeta.settingsDirty ||
+        Object.values(syncMeta.dirty).some(group => Object.keys(group).length) ||
+        Object.values(syncMeta.deletes).some(group => Object.keys(group).length);
+    }
+
+    function clearSyncMeta() { syncMeta = emptySyncMeta(); persistSyncMeta(); }
+
+    function markAllLocalDirty() {
+      state.tasks.forEach(item => markDirty("tasks", item.id));
+      state.habits.forEach(item => markDirty("habits", item.id));
+      state.shopping.forEach(item => markDirty("shopping", item.id));
+      Object.keys(state.diary || {}).forEach(date => markDirty("diary", date));
+      Object.keys(state.mood || {}).forEach(date => markDirty("diary", date));
+      Object.entries(state.habitLog || {}).forEach(([date, values]) => Object.entries(values || {}).forEach(([habitId, done]) => {
+        if (done) markDirty("habitLogs", `${date}|${habitId}`);
+      }));
+      markSettingsDirty();
+    }
+
+    function loadBackupHistory() {
+      try { const rows = JSON.parse(localStorage.getItem(BACKUP_KEY) || "[]"); return Array.isArray(rows) ? rows : []; }
+      catch { return []; }
+    }
+
+    function saveRollingBackup(reason, force=false) {
+      try {
+        const history = loadBackupHistory();
+        const now = Date.now();
+        const current = JSON.stringify(state);
+        const last = history[history.length-1];
+        if (!force && last && now - Date.parse(last.at) < 5*60*1000) return;
+        if (last && JSON.stringify(last.state) === current) return;
+        history.push({ at:new Date(now).toISOString(), reason, state:structuredClone(state) });
+        while (history.length > 8) history.shift();
+        localStorage.setItem(BACKUP_KEY, JSON.stringify(history));
+      } catch (error) { console.warn("Не удалось сохранить автокопию", error); }
     }
 
     function fillReminderSelects() {
@@ -781,11 +890,11 @@
 
       $("notifyTop").addEventListener("click", requestNotifications);
       $("enableNotifications").addEventListener("click", requestNotifications);
-      $("defaultReminder").addEventListener("change", e => { state.settings.defaultReminder=Number(e.target.value); saveState(); toast("Выбор напоминания сохранён"); });
-      $("darkToggle").addEventListener("change", e => { state.settings.theme=e.target.checked?"dark":"light"; saveState(); applySettings(); });
-      $("patternToggle").addEventListener("change", e => { state.settings.pattern=e.target.checked; saveState(); applySettings(); });
-      $("compactToggle").addEventListener("change", e => { state.settings.compact=e.target.checked; saveState(); applySettings(); });
-      $$(".palette").forEach(btn => btn.addEventListener("click", () => { state.settings.accent=btn.dataset.palette; saveState(); applySettings(); }));
+      $("defaultReminder").addEventListener("change", e => { state.settings.defaultReminder=Number(e.target.value); markSettingsDirty(); saveState(); toast("Выбор напоминания сохранён"); });
+      $("darkToggle").addEventListener("change", e => { state.settings.theme=e.target.checked?"dark":"light"; markSettingsDirty(); saveState(); applySettings(); });
+      $("patternToggle").addEventListener("change", e => { state.settings.pattern=e.target.checked; markSettingsDirty(); saveState(); applySettings(); });
+      $("compactToggle").addEventListener("change", e => { state.settings.compact=e.target.checked; markSettingsDirty(); saveState(); applySettings(); });
+      $$(".palette").forEach(btn => btn.addEventListener("click", () => { state.settings.accent=btn.dataset.palette; markSettingsDirty(); saveState(); applySettings(); }));
       $("exportData").addEventListener("click", exportData);
       $("importData").addEventListener("click", () => $("importFile").click());
       $("importFile").addEventListener("change", importData);
@@ -877,7 +986,8 @@
     function quickAddTask(e) {
       e.preventDefault();
       const title=$("quickTitle").value.trim(); if(!title) return;
-      state.tasks.push(newTask({title,date:todayKey(),reminder:state.settings.defaultReminder}));
+      const task = newTask({title,date:todayKey(),reminder:state.settings.defaultReminder});
+      state.tasks.push(task); markDirty("tasks", task.id);
       $("quickTitle").value=""; saveState(); renderAll(); toast("Дело добавлено на сегодня");
     }
 
@@ -894,12 +1004,12 @@
       const id=$("taskId").value;
       const payload={title:$("taskTitle").value.trim(),date:$("taskDate").value,time:$("taskTime").value,priority:$("taskPriority").value,category:$("taskCategory").value.trim(),reminder:Number($("taskReminder").value),note:$("taskNote").value.trim()};
       if(!payload.title||!payload.date) return;
-      if(id){ const task=state.tasks.find(t=>t.id===id); if(task) Object.assign(task,payload,{updatedAt:new Date().toISOString()}); toast("Дело обновлено"); }
-      else { state.tasks.push(newTask(payload)); toast("Дело добавлено"); }
+      if(id){ const task=state.tasks.find(t=>t.id===id); if(task) { Object.assign(task,payload,{updatedAt:new Date().toISOString()}); markDirty("tasks", task.id); } toast("Дело обновлено"); }
+      else { const task=newTask(payload); state.tasks.push(task); markDirty("tasks", task.id); toast("Дело добавлено"); }
       state.notified={}; saveState(); $("taskDialog").close(); selectedDate=payload.date; calendarMonth=startOfMonth(parseDate(payload.date)); renderAll();
     }
 
-    function newTask(payload) { return {id:uid(),title:"",date:todayKey(),time:"",priority:"medium",category:"",reminder:state.settings.defaultReminder,note:"",done:false,createdAt:new Date().toISOString(),...payload}; }
+    function newTask(payload) { const now=new Date().toISOString(); return {id:uid(),title:"",date:todayKey(),time:"",priority:"medium",category:"",reminder:state.settings.defaultReminder,note:"",done:false,createdAt:now,updatedAt:now,...payload}; }
 
     function renderTaskList(container, tasks, dateContext) {
       container.innerHTML="";
@@ -925,21 +1035,31 @@
       });
     }
 
-    function toggleTask(id){const t=state.tasks.find(x=>x.id===id);if(!t)return;t.done=!t.done;t.doneAt=t.done?new Date().toISOString():null;saveState();renderAll();toast(t.done?"Готово! Умничка ✨":"Дело возвращено");}
-    function deleteTask(id){const t=state.tasks.find(x=>x.id===id);if(!t||!confirm(`Удалить «${t.title}»?`))return;state.tasks=state.tasks.filter(x=>x.id!==id);saveState();renderAll();toast("Дело удалено");}
+    function toggleTask(id){const t=state.tasks.find(x=>x.id===id);if(!t)return;t.done=!t.done;t.doneAt=t.done?new Date().toISOString():null;t.updatedAt=new Date().toISOString();markDirty("tasks",id);saveState();renderAll();toast(t.done?"Готово! Умничка ✨":"Дело возвращено");}
+    function deleteTask(id){const t=state.tasks.find(x=>x.id===id);if(!t||!confirm(`Удалить «${t.title}»?`))return;markDeleted("tasks",id);state.tasks=state.tasks.filter(x=>x.id!==id);saveState();renderAll();toast("Дело удалено");}
 
     function renderCalendarView(){renderCalendar(); const tasks=sortTasks(state.tasks.filter(t=>t.date===selectedDate)); $("selectedDateTitle").textContent=formatDateTitle(selectedDate); $("selectedDateSubtitle").textContent=tasks.length?`${tasks.length} ${plural(tasks.length,"дело","дела","дел")}`:"Свободный день"; renderTaskList($("selectedTaskList"),tasks,selectedDate);}
 
     function renderCalendar(){
       const grid=$("calendarGrid"); grid.innerHTML="";
-      $("calendarTitle").textContent=calendarMonth.toLocaleDateString("ru-RU",{month:"long",year:"numeric"});
-      ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].forEach(w=>{const d=document.createElement("div");d.className="weekday";d.textContent=w;grid.appendChild(d);});
-      const first=startOfWeek(calendarMonth); const taskCounts={}; state.tasks.forEach(t=>taskCounts[t.date]=(taskCounts[t.date]||0)+1);
+      const rawTitle=calendarMonth.toLocaleDateString("ru-RU",{month:"long",year:"numeric"});
+      $("calendarTitle").textContent=rawTitle.replace(/^./,c=>c.toUpperCase());
+      ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].forEach((w,index)=>{const d=document.createElement("div");d.className=`weekday${index>4?" weekend-label":""}`;d.textContent=w;grid.appendChild(d);});
+      const first=startOfWeek(calendarMonth), tasksByDate={};
+      state.tasks.forEach(task=>{(tasksByDate[task.date] ||= []).push(task);});
       for(let i=0;i<42;i++){
-        const date=addDays(first,i), key=dateKey(date); const btn=document.createElement("button"); btn.className="day";
+        const date=addDays(first,i), key=dateKey(date), holiday=getRussianHolidayName(key); const btn=document.createElement("button"); btn.className="day";
+        if(date.getDay()===0||date.getDay()===6)btn.classList.add("weekend");
+        if(holiday)btn.classList.add("holiday");
         if(date.getMonth()!==calendarMonth.getMonth())btn.classList.add("muted"); if(key===todayKey())btn.classList.add("today"); if(key===selectedDate)btn.classList.add("selected");
-        btn.innerHTML=`<span class="day-number">${date.getDate()}</span><span class="day-dots"></span>`;
-        const dots=Math.min(taskCounts[key]||0,4); for(let j=0;j<dots;j++){const dot=document.createElement("span");dot.className="dot";btn.querySelector(".day-dots").appendChild(dot);}
+        btn.innerHTML=`<span class="day-number">${date.getDate()}</span>${holiday?'<span class="holiday-mark">✦</span>':''}<span class="day-dots"></span>`;
+        btn.title=holiday?`${formatDateTitle(key)} — ${holiday}`:formatDateTitle(key);
+        sortTasks(tasksByDate[key]||[]).slice(0,6).forEach(task=>{
+          const dot=document.createElement("span");
+          dot.className=`dot ${calendarCategoryClass(task.category)} priority-${task.priority||"medium"}`;
+          dot.title=`${task.title}${task.category?` · ${task.category}`:""} · ${priorityLabel(task.priority)}`;
+          btn.querySelector(".day-dots").appendChild(dot);
+        });
         btn.addEventListener("click",()=>{selectedDate=key;calendarMonth=startOfMonth(date);renderCalendarView();}); grid.appendChild(btn);
       }
     }
@@ -955,25 +1075,25 @@
       habits.forEach(h=>{const done=isHabitDone(h.id,todayKey());const node=document.createElement("div");node.className="habit-item";node.innerHTML=`<div class="habit-emoji"></div><div><div class="habit-title"></div><div class="habit-streak"></div></div><div style="display:flex;gap:4px"><button class="habit-toggle${done?" checked":""}">${done?"✓":"○"}</button>${compact?"":'<button class="icon-btn delete-habit" title="Удалить">🗑️</button>'}</div>`;node.querySelector(".habit-emoji").textContent=h.emoji||"✨";node.querySelector(".habit-title").textContent=h.title;node.querySelector(".habit-streak").textContent=`Серия: ${habitStreak(h.id)} ${plural(habitStreak(h.id),"день","дня","дней")}`;node.querySelector(".habit-toggle").addEventListener("click",()=>toggleHabit(h.id));if(!compact)node.querySelector(".delete-habit").addEventListener("click",()=>deleteHabit(h.id));container.appendChild(node);});
     }
 
-    function addHabit(e){e.preventDefault();const title=$("habitTitle").value.trim();if(!title)return;state.habits.push({id:uid(),title,emoji:$("habitEmoji").value.trim()||"✨",createdAt:new Date().toISOString()});saveState();$("habitDialog").close();renderAll();toast("Привычка добавлена 🌱");}
-    function toggleHabit(id){const key=todayKey();state.habitLog[key]=state.habitLog[key]||{};state.habitLog[key][id]=!state.habitLog[key][id];saveState();renderAll();toast(state.habitLog[key][id]?"Отмечено! ✨":"Отметка снята");}
+    function addHabit(e){e.preventDefault();const title=$("habitTitle").value.trim();if(!title)return;const now=new Date().toISOString(),habit={id:uid(),title,emoji:$("habitEmoji").value.trim()||"✨",createdAt:now,updatedAt:now};state.habits.push(habit);markDirty("habits",habit.id);saveState();$("habitDialog").close();renderAll();toast("Привычка добавлена 🌱");}
+    function toggleHabit(id){const key=todayKey(),logKey=`${key}|${id}`;state.habitLog[key]=state.habitLog[key]||{};state.habitLog[key][id]=!state.habitLog[key][id];if(state.habitLog[key][id])markDirty("habitLogs",logKey);else markDeleted("habitLogs",logKey);saveState();renderAll();toast(state.habitLog[key][id]?"Отмечено! ✨":"Отметка снята");}
     function isHabitDone(id,key){return Boolean(state.habitLog[key]?.[id]);}
-    function deleteHabit(id){const h=state.habits.find(x=>x.id===id);if(!h||!confirm(`Удалить привычку «${h.title}»?`))return;state.habits=state.habits.filter(x=>x.id!==id);Object.values(state.habitLog).forEach(log=>delete log[id]);saveState();renderAll();}
+    function deleteHabit(id){const h=state.habits.find(x=>x.id===id);if(!h||!confirm(`Удалить привычку «${h.title}»?`))return;markDeleted("habits",id);state.habits=state.habits.filter(x=>x.id!==id);Object.values(state.habitLog).forEach(log=>delete log[id]);saveState();renderAll();}
     function habitStreak(id){let streak=0,d=new Date();for(let i=0;i<365;i++){if(isHabitDone(id,dateKey(d)))streak++;else if(i>0||dateKey(d)!==todayKey())break;d=addDays(d,-1);}return streak;}
     function renderWeeklyHabitSummary(){const wrap=$("weeklyHabitSummary");wrap.innerHTML="";for(let i=6;i>=0;i--){const d=addDays(new Date(),-i),key=dateKey(d),done=state.habits.filter(h=>isHabitDone(h.id,key)).length,total=state.habits.length,p=total?Math.round(done/total*100):0;const row=document.createElement("div");row.style.cssText="display:grid;grid-template-columns:44px 1fr 38px;gap:8px;align-items:center;margin:9px 0";row.innerHTML=`<span class="subtle">${d.toLocaleDateString("ru-RU",{weekday:"short"}).replace(".","")}</span><div class="progress-line"><div class="progress-fill" style="width:${p}%"></div></div><span class="subtle" style="text-align:right">${p}%</span>`;wrap.appendChild(row);}}
 
-    function addShoppingItem(e){e.preventDefault();const title=$("shoppingTitle").value.trim();if(!title)return;state.shopping.push({id:uid(),title,qty:$("shoppingQty").value.trim(),category:$("shoppingCategory").value,done:false,createdAt:new Date().toISOString()});$("shoppingTitle").value="";$("shoppingQty").value="";saveState();renderAll();toast("Добавлено в покупки");}
+    function addShoppingItem(e){e.preventDefault();const title=$("shoppingTitle").value.trim();if(!title)return;const now=new Date().toISOString(),item={id:uid(),title,qty:$("shoppingQty").value.trim(),category:$("shoppingCategory").value,done:false,createdAt:now,updatedAt:now};state.shopping.push(item);markDirty("shopping",item.id);$("shoppingTitle").value="";$("shoppingQty").value="";saveState();renderAll();toast("Добавлено в покупки");}
     function renderShopping(){
       const groups=$("shoppingGroups");groups.innerHTML="";const left=state.shopping.filter(i=>!i.done).length;$("shoppingSummary").textContent=state.shopping.length?`${left} осталось купить`:"Список пока пуст";
       if(!state.shopping.length){groups.innerHTML='<div class="empty"><span class="emoji">🛍️</span>Добавляй сюда всё, что нужно купить</div>';return;}
       const order=["Продукты","Дом","Красота","Здоровье","Одежда","Другое"];
-      [...new Set(state.shopping.map(i=>i.category))].sort((a,b)=>order.indexOf(a)-order.indexOf(b)).forEach(cat=>{const section=document.createElement("section");section.innerHTML=`<div class="group-title">${categoryEmoji(cat)} <span></span></div><div class="shopping-list"></div>`;section.querySelector(".group-title span").textContent=cat;const list=section.querySelector(".shopping-list");state.shopping.filter(i=>i.category===cat).sort((a,b)=>Number(a.done)-Number(b.done)).forEach(item=>{const node=document.createElement("div");node.className=`shopping-item${item.done?" done":""}`;node.innerHTML=`<button class="check${item.done?" checked":""}">${item.done?"✓":""}</button><div><div class="shopping-title"></div><div class="shopping-meta"></div></div><div class="item-actions"><button class="icon-btn delete">🗑️</button></div>`;node.querySelector(".shopping-title").textContent=item.title;node.querySelector(".shopping-meta").textContent=item.qty||"Количество не указано";node.querySelector(".check").addEventListener("click",()=>{item.done=!item.done;saveState();renderAll();});node.querySelector(".delete").addEventListener("click",()=>{state.shopping=state.shopping.filter(x=>x.id!==item.id);saveState();renderAll();});list.appendChild(node);});groups.appendChild(section);});
+      [...new Set(state.shopping.map(i=>i.category))].sort((a,b)=>order.indexOf(a)-order.indexOf(b)).forEach(cat=>{const section=document.createElement("section");section.innerHTML=`<div class="group-title">${categoryEmoji(cat)} <span></span></div><div class="shopping-list"></div>`;section.querySelector(".group-title span").textContent=cat;const list=section.querySelector(".shopping-list");state.shopping.filter(i=>i.category===cat).sort((a,b)=>Number(a.done)-Number(b.done)).forEach(item=>{const node=document.createElement("div");node.className=`shopping-item${item.done?" done":""}`;node.innerHTML=`<button class="check${item.done?" checked":""}">${item.done?"✓":""}</button><div><div class="shopping-title"></div><div class="shopping-meta"></div></div><div class="item-actions"><button class="icon-btn delete">🗑️</button></div>`;node.querySelector(".shopping-title").textContent=item.title;node.querySelector(".shopping-meta").textContent=item.qty||"Количество не указано";node.querySelector(".check").addEventListener("click",()=>{item.done=!item.done;item.updatedAt=new Date().toISOString();markDirty("shopping",item.id);saveState();renderAll();});node.querySelector(".delete").addEventListener("click",()=>{markDeleted("shopping",item.id);state.shopping=state.shopping.filter(x=>x.id!==item.id);saveState();renderAll();});list.appendChild(node);});groups.appendChild(section);});
     }
-    function clearBoughtItems(){const n=state.shopping.filter(i=>i.done).length;if(!n){toast("Купленных позиций пока нет");return;}if(!confirm(`Удалить купленные позиции (${n})?`))return;state.shopping=state.shopping.filter(i=>!i.done);saveState();renderAll();}
+    function clearBoughtItems(){const bought=state.shopping.filter(i=>i.done),n=bought.length;if(!n){toast("Купленных позиций пока нет");return;}if(!confirm(`Удалить купленные позиции (${n})?`))return;bought.forEach(item=>markDeleted("shopping",item.id));state.shopping=state.shopping.filter(i=>!i.done);saveState();renderAll();}
 
     function renderDiary(){const key=$("diaryDate").value||todayKey();$("diaryDate").value=key;$("diaryText").value=state.diary[key]||"";$("diaryHeading").textContent=formatDateTitle(key);const mood=state.mood[key]||0;$$('.mood').forEach(b=>b.classList.toggle('active',Number(b.dataset.mood)===mood));$("diaryMoodText").textContent=mood?`Настроение: ${["","тяжёлое","не очень","спокойное","хорошее","прекрасное"][mood]}`:"Настроение не выбрано";}
-    function scheduleDiarySave(key,value,indicatorId){clearTimeout(saveTimer);$(indicatorId).textContent="сохраняю...";saveTimer=setTimeout(()=>{state.diary[key]=value;saveState();$(indicatorId).textContent="сохранено ✓";if(key===todayKey()&&indicatorId!=="quickDiaryState")$("quickDiary").value=value;if(key===todayKey()&&indicatorId!=="diarySaveState"&&$("diaryDate").value===key)$("diaryText").value=value;},350);}
-    function setMood(key,mood){state.mood[key]=mood;saveState();renderDiary();toast("Настроение сохранено");}
+    function scheduleDiarySave(key,value,indicatorId){clearTimeout(saveTimer);$(indicatorId).textContent="сохраняю...";saveTimer=setTimeout(()=>{state.diary[key]=value;markDirty("diary",key);saveState();$(indicatorId).textContent="сохранено ✓";if(key===todayKey()&&indicatorId!=="quickDiaryState")$("quickDiary").value=value;if(key===todayKey()&&indicatorId!=="diarySaveState"&&$("diaryDate").value===key)$("diaryText").value=value;},350);}
+    function setMood(key,mood){state.mood[key]=mood;markDirty("diary",key);saveState();renderDiary();toast("Настроение сохранено");}
 
     function renderBadges(){const todayActive=state.tasks.filter(t=>t.date===todayKey()&&!t.done).length,allActive=state.tasks.filter(t=>!t.done).length,habitsLeft=state.habits.filter(h=>!isHabitDone(h.id,todayKey())).length,shoppingLeft=state.shopping.filter(i=>!i.done).length;$("badgeToday").textContent=todayActive;$("badgeCalendar").textContent=allActive;$("badgeHabits").textContent=habitsLeft;$("badgeShopping").textContent=shoppingLeft;}
 
@@ -1151,26 +1271,31 @@
         if (needsFirstMerge) {
           const merged = remote.hasData ? mergeStates(remote.state, localSnapshot) : localSnapshot;
           replaceStateFromCloud(merged);
+          markAllLocalDirty();
           const ok = await syncCloudState(false);
           if (!ok) throw new Error("Не удалось перенести локальные данные в облако");
           localStorage.setItem(migrationKey, "1");
           toast("Локальные записи объединены с облаком ☁️");
-        } else if (remote.hasData) {
-          replaceStateFromCloud(remote.state);
-          toast("Данные загружены из облака ☁️");
-        } else {
+        } else if (!remote.hasData && stateHasUserData(localSnapshot)) {
+          replaceStateFromCloud(localSnapshot);
+          markAllLocalDirty();
           const ok = await syncCloudState(false);
           if (!ok) throw new Error("Не удалось создать облачную копию");
-          localStorage.setItem(migrationKey, "1");
-          toast("Записи с этого устройства перенесены в облако ☁️");
+          toast("Локальные записи сохранены в облаке ☁️");
+        } else {
+          replaceStateFromCloud(mergeRemoteWithDirty(remote.state, localSnapshot));
+          if (hasPendingCloudChanges()) await syncCloudState(false);
+          toast("Данные безопасно объединены с облаком ☁️");
         }
+        localStorage.setItem(migrationKey, "1");
         startRealtime();
+        startCloudPolling();
         await restorePushSubscriptionRecord().catch(error => console.warn("Не удалось обновить push-подписку", error));
         updateAuthUI("online", "Синхронизировано");
       } catch (error) {
         console.error(error);
         updateAuthUI("error", "Не удалось загрузить данные");
-        toast("Не удалось подключить облако");
+        toast("Не удалось подключить облако. Локальная копия сохранена.");
       }
     }
 
@@ -1209,10 +1334,53 @@
       };
     }
 
+    function stateHasUserData(value=state) {
+      return Boolean(value.tasks?.length || value.habits?.length || value.shopping?.length || Object.keys(value.diary||{}).length || Object.keys(value.mood||{}).length || Object.keys(value.habitLog||{}).length);
+    }
+
+    function mergeRemoteWithDirty(remoteState, localState) {
+      const next = structuredClone(remoteState || defaultState);
+      const overlayArray = (bucket, remoteItems=[], localItems=[]) => {
+        const map = new Map(remoteItems.map(item => [item.id, structuredClone(item)]));
+        Object.keys(syncMeta.dirty[bucket] || {}).forEach(id => {
+          const local = localItems.find(item => item.id === id);
+          if (local) map.set(id, structuredClone(local));
+        });
+        Object.keys(syncMeta.deletes[bucket] || {}).forEach(id => map.delete(id));
+        return [...map.values()];
+      };
+      next.tasks = overlayArray("tasks", next.tasks, localState.tasks);
+      next.habits = overlayArray("habits", next.habits, localState.habits);
+      next.shopping = overlayArray("shopping", next.shopping, localState.shopping);
+      next.habitLog = structuredClone(next.habitLog || {});
+      Object.keys(syncMeta.dirty.habitLogs || {}).forEach(logKey => {
+        const [date, habitId] = logKey.split("|");
+        next.habitLog[date] = next.habitLog[date] || {};
+        next.habitLog[date][habitId] = Boolean(localState.habitLog?.[date]?.[habitId]);
+      });
+      Object.keys(syncMeta.deletes.habitLogs || {}).forEach(logKey => {
+        const [date, habitId] = logKey.split("|");
+        if (next.habitLog?.[date]) delete next.habitLog[date][habitId];
+      });
+      Object.keys(syncMeta.deletes.habits || {}).forEach(habitId => {
+        Object.values(next.habitLog || {}).forEach(log => delete log[habitId]);
+      });
+      next.diary = {...(next.diary || {})}; next.mood = {...(next.mood || {})};
+      Object.keys(syncMeta.dirty.diary || {}).forEach(date => {
+        next.diary[date] = localState.diary?.[date] || "";
+        next.mood[date] = Number(localState.mood?.[date] || 0);
+      });
+      next.settings = syncMeta.settingsDirty ? structuredClone(localState.settings) : {...defaultState.settings,...(next.settings||{})};
+      next.notified = {...(localState.notified || {})};
+      return next;
+    }
+
     function handleSignedOut() {
       authUser = null;
       if (realtimeChannel && cloud) cloud.removeChannel(realtimeChannel);
       realtimeChannel = null;
+      clearInterval(cloudPollTimer);
+      cloudPollTimer = null;
       updateAuthUI();
       toast("Выход выполнен. Локальная копия осталась на устройстве.");
     }
@@ -1245,6 +1413,7 @@
     }
 
     function replaceStateFromCloud(nextState) {
+      if (JSON.stringify(state) !== JSON.stringify(nextState)) saveRollingBackup("Перед обновлением из облака", true);
       suppressCloudSync = true;
       state = nextState;
       persistLocalState();
@@ -1307,50 +1476,71 @@
       cloudSyncAgain = false;
       updateAuthUI("syncing", "Синхронизирую…");
       try {
-        const userId = authUser.id;
-        const now = new Date().toISOString();
-        const taskRows = state.tasks.map(t => ({
+        const remote = await fetchCloudState();
+        if (remote.hasData) replaceStateFromCloud(mergeRemoteWithDirty(remote.state, state));
+        else if (stateHasUserData(state) && !hasPendingCloudChanges()) markAllLocalDirty();
+
+        if (!hasPendingCloudChanges()) {
+          updateAuthUI("online", "Синхронизировано");
+          if (showToast) toast("Облако синхронизировано ☁️");
+          return true;
+        }
+
+        const userId = authUser.id, now = new Date().toISOString();
+        await applyPendingDeletes(userId);
+
+        const dirtyTaskIds = new Set(Object.keys(syncMeta.dirty.tasks));
+        const dirtyHabitIds = new Set(Object.keys(syncMeta.dirty.habits));
+        const dirtyShoppingIds = new Set(Object.keys(syncMeta.dirty.shopping));
+        const dirtyDiaryDates = new Set(Object.keys(syncMeta.dirty.diary));
+        const dirtyHabitLogs = new Set(Object.keys(syncMeta.dirty.habitLogs));
+
+        const taskRows = state.tasks.filter(t=>dirtyTaskIds.has(t.id)).map(t => ({
           id:t.id, user_id:userId, title:t.title, task_date:t.date, task_time:t.time || null,
           priority:t.priority || "medium", category:t.category || "", reminder_minutes:Number(t.reminder ?? 60),
           note:t.note || "", done:Boolean(t.done), done_at:t.doneAt || null,
           created_at:t.createdAt || now, updated_at:t.updatedAt || now
         }));
-        const habitRows = state.habits.map(h => ({
+        const habitRows = state.habits.filter(h=>dirtyHabitIds.has(h.id)).map(h => ({
           id:h.id, user_id:userId, title:h.title, emoji:h.emoji || "✨", archived:false,
           created_at:h.createdAt || now, updated_at:h.updatedAt || now
         }));
-        const logRows = [];
-        Object.entries(state.habitLog || {}).forEach(([date, values]) => Object.entries(values || {}).forEach(([habitId, done]) => {
-          if (done) logRows.push({ id:`${userId}|${habitId}|${date}`, user_id:userId, habit_id:habitId, log_date:date, done:true, created_at:now });
-        }));
-        const shoppingRows = state.shopping.map(i => ({
+        const shoppingRows = state.shopping.filter(i=>dirtyShoppingIds.has(i.id)).map(i => ({
           id:i.id, user_id:userId, title:i.title, quantity:i.qty || "", category:i.category || "Другое",
           done:Boolean(i.done), created_at:i.createdAt || now, updated_at:i.updatedAt || now
         }));
-        const diaryDates = new Set([...Object.keys(state.diary || {}), ...Object.keys(state.mood || {})]);
-        const diaryRows = [...diaryDates].map(date => ({
+        const logRows = [];
+        dirtyHabitLogs.forEach(logKey => {
+          const [date, habitId] = logKey.split("|");
+          if (state.habitLog?.[date]?.[habitId]) logRows.push({ id:`${userId}|${habitId}|${date}`, user_id:userId, habit_id:habitId, log_date:date, done:true, created_at:now });
+        });
+        const diaryRows = [...dirtyDiaryDates].map(date => ({
           id:`${userId}|${date}`, user_id:userId, entry_date:date, content:state.diary?.[date] || "",
           mood:Number(state.mood?.[date] || 0), created_at:now, updated_at:now
         }));
 
-        await syncTable("tasks", taskRows);
-        await syncTable("habits", habitRows);
-        await syncTable("habit_logs", logRows);
-        await syncTable("shopping_items", shoppingRows);
-        await syncTable("diary_entries", diaryRows);
-        const { error:settingsError } = await cloud.from("user_settings").upsert({
-          user_id:userId, theme:state.settings.theme, accent:state.settings.accent,
-          pattern:Boolean(state.settings.pattern), compact:Boolean(state.settings.compact),
-          default_reminder:Number(state.settings.defaultReminder), updated_at:now
-        }, { onConflict:"user_id" });
-        if (settingsError) throw settingsError;
+        await upsertRows("tasks", taskRows);
+        await upsertRows("habits", habitRows);
+        await upsertRows("habit_logs", logRows);
+        await upsertRows("shopping_items", shoppingRows);
+        await upsertRows("diary_entries", diaryRows);
+        if (syncMeta.settingsDirty) {
+          const { error } = await cloud.from("user_settings").upsert({
+            user_id:userId, theme:state.settings.theme, accent:state.settings.accent,
+            pattern:Boolean(state.settings.pattern), compact:Boolean(state.settings.compact),
+            default_reminder:Number(state.settings.defaultReminder), updated_at:now
+          }, { onConflict:"user_id" });
+          if (error) throw error;
+        }
+        clearSyncMeta();
+        persistLocalState();
         updateAuthUI("online", "Синхронизировано");
         if (showToast) toast("Облако синхронизировано ☁️");
         return true;
       } catch (error) {
         console.error(error);
         updateAuthUI("error", "Ошибка синхронизации");
-        toast("Не удалось сохранить изменения в облаке");
+        toast("Не удалось связаться с облаком. Данные остались на устройстве.");
         return false;
       } finally {
         cloudSyncing = false;
@@ -1358,18 +1548,31 @@
       }
     }
 
-    async function syncTable(table, rows) {
-      const { data:existing, error:selectError } = await cloud.from(table).select("id");
-      if (selectError) throw selectError;
-      if (rows.length) {
-        const { error:upsertError } = await cloud.from(table).upsert(rows, { onConflict:"id" });
-        if (upsertError) throw upsertError;
+    async function upsertRows(table, rows) {
+      if (!rows.length) return;
+      const { error } = await cloud.from(table).upsert(rows, { onConflict:"id" });
+      if (error) throw error;
+    }
+
+    async function deleteIds(table, ids) {
+      if (!ids.length) return;
+      const { error } = await cloud.from(table).delete().in("id", ids);
+      if (error) throw error;
+    }
+
+    async function applyPendingDeletes(userId) {
+      await deleteIds("tasks", Object.keys(syncMeta.deletes.tasks));
+      const habitIds = Object.keys(syncMeta.deletes.habits);
+      if (habitIds.length) {
+        const { error:logError } = await cloud.from("habit_logs").delete().in("habit_id", habitIds);
+        if (logError) throw logError;
+        await deleteIds("habits", habitIds);
       }
-      const keep = new Set(rows.map(r => r.id));
-      const stale = (existing || []).map(r => r.id).filter(id => !keep.has(id));
-      if (stale.length) {
-        const { error:deleteError } = await cloud.from(table).delete().in("id", stale);
-        if (deleteError) throw deleteError;
+      await deleteIds("shopping_items", Object.keys(syncMeta.deletes.shopping));
+      for (const logKey of Object.keys(syncMeta.deletes.habitLogs)) {
+        const [date, habitId] = logKey.split("|");
+        const { error } = await cloud.from("habit_logs").delete().eq("user_id",userId).eq("habit_id",habitId).eq("log_date",date);
+        if (error) throw error;
       }
     }
 
@@ -1383,13 +1586,20 @@
       realtimeChannel.subscribe();
     }
 
+    function startCloudPolling() {
+      clearInterval(cloudPollTimer);
+      cloudPollTimer = setInterval(() => {
+        if (authUser && !document.hidden && navigator.onLine) queueCloudRefresh();
+      }, 20000);
+    }
+
     function queueCloudRefresh() {
       clearTimeout(cloudRefreshTimer);
       cloudRefreshTimer = setTimeout(async () => {
         if (cloudSyncing) { queueCloudRefresh(); return; }
         try {
           const remote = await fetchCloudState();
-          if (remote.hasData) replaceStateFromCloud(remote.state);
+          if (remote.hasData) replaceStateFromCloud(mergeRemoteWithDirty(remote.state, state));
           updateAuthUI("online", "Синхронизировано");
         } catch (error) { console.error(error); }
       }, 900);
@@ -1583,8 +1793,8 @@
       });
     }
 
-    function exportData(){const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`dnevnik-nastyushki-${todayKey()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast("Резервная копия скачана");}
-    function importData(e){const file=e.target.files?.[0];e.target.value="";if(!file)return;const r=new FileReader();r.onload=()=>{try{const parsed=JSON.parse(r.result);if(!parsed||!Array.isArray(parsed.tasks))throw new Error();if(!confirm("Заменить текущие данные данными из файла?"))return;state={...structuredClone(defaultState),...parsed,settings:{...defaultState.settings,...(parsed.settings||{})}};saveState();applySettings();renderAll();toast("Данные восстановлены");}catch{toast("Не удалось прочитать файл");}};r.readAsText(file);}
+    function exportData(){const payload={...structuredClone(state),_exportedAt:new Date().toISOString(),_backupHistory:loadBackupHistory()};const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`dnevnik-nastyushki-${todayKey()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast("Резервная копия и история автокопий скачаны");}
+    function importData(e){const file=e.target.files?.[0];e.target.value="";if(!file)return;const r=new FileReader();r.onload=()=>{try{const parsed=JSON.parse(r.result),incoming=parsed?.state||parsed;if(!incoming||!Array.isArray(incoming.tasks))throw new Error();if(!confirm("Объединить текущие данные с резервной копией? Ничего не будет удалено."))return;saveRollingBackup("Перед импортом",true);state=mergeStates(state,{...structuredClone(defaultState),...incoming,settings:{...defaultState.settings,...(incoming.settings||{})}});markAllLocalDirty();saveState();applySettings();renderAll();toast("Резервная копия объединена с текущими данными");}catch{toast("Не удалось прочитать файл");}};r.readAsText(file);}
 
     function toast(text){const n=document.createElement("div");n.className="toast";n.textContent=text;$("toastWrap").appendChild(n);setTimeout(()=>n.remove(),3200);}
     function uid(){return crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random().toString(16).slice(2)}`;}
@@ -1602,6 +1812,27 @@
     function reminderText(v){return reminderOptions.find(([x])=>x===Number(v))?.[1]?.replace(/^За /,"за ").replace("В момент события","в момент события")||"";}
     function taskDateTime(t){const d=parseDate(t.date);const [h,m]=(t.time||"23:59").split(":").map(Number);d.setHours(h,m,0,0);return d;}
     function plural(n,one,few,many){const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?many:b>1&&b<5?few:b===1?one:many;}
+    function calendarCategoryClass(category="") {
+      const value=String(category).trim().toLowerCase();
+      if (/работ|офис|проект|уч[её]б/.test(value)) return "category-work";
+      if (/дом|быт|семь/.test(value)) return "category-home";
+      if (/здоров|врач|спорт|лекар/.test(value)) return "category-health";
+      if (/личн|красот|уход|друз|отдых/.test(value)) return "category-personal";
+      return "category-other";
+    }
+
+    function getRussianHolidayName(key) {
+      const holidays2026 = {
+        "2026-01-01":"Новогодние каникулы", "2026-01-02":"Новогодние каникулы", "2026-01-03":"Новогодние каникулы",
+        "2026-01-04":"Новогодние каникулы", "2026-01-05":"Новогодние каникулы", "2026-01-06":"Новогодние каникулы",
+        "2026-01-07":"Рождество Христово", "2026-01-08":"Новогодние каникулы", "2026-01-09":"Перенесённый выходной",
+        "2026-02-23":"День защитника Отечества", "2026-03-08":"Международный женский день", "2026-03-09":"Перенесённый выходной",
+        "2026-05-01":"Праздник Весны и Труда", "2026-05-09":"День Победы", "2026-05-11":"Перенесённый выходной",
+        "2026-06-12":"День России", "2026-11-04":"День народного единства", "2026-12-31":"Перенесённый выходной"
+      };
+      return holidays2026[key] || "";
+    }
+
     function categoryEmoji(cat){return ({"Продукты":"🥑","Дом":"🏠","Красота":"💄","Здоровье":"💊","Одежда":"👗","Другое":"📦"})[cat]||"📦";}
   })();
   </script>

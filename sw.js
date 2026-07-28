@@ -1,4 +1,4 @@
-const CACHE = "dnevnik-nastyushki-v6-push";
+const CACHE = "dnevnik-nastyushki-v7-safe-calendar";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", event => {
