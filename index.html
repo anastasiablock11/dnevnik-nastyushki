@@ -733,7 +733,7 @@
       checkReminders();
       setInterval(checkReminders, 30000);
       if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-        navigator.serviceWorker.register("./sw.js?v=7", { scope: "./" }).then(registration => registration.update()).catch(console.error);
+        navigator.serviceWorker.register("./sw.js?v=8", { scope: "./" }).then(registration => registration.update()).catch(console.error);
       }
       updateAuthUI();
       await initCloud();
@@ -824,6 +824,21 @@
     }
 
     function clearSyncMeta() { syncMeta = emptySyncMeta(); persistSyncMeta(); }
+
+    function clearProcessedSyncMeta(processed, settingsSnapshot) {
+      Object.keys(processed.dirty || {}).forEach(bucket => {
+        Object.entries(processed.dirty[bucket] || {}).forEach(([id, stamp]) => {
+          if (syncMeta.dirty?.[bucket]?.[id] === stamp) delete syncMeta.dirty[bucket][id];
+        });
+      });
+      Object.keys(processed.deletes || {}).forEach(bucket => {
+        Object.entries(processed.deletes[bucket] || {}).forEach(([id, stamp]) => {
+          if (syncMeta.deletes?.[bucket]?.[id] === stamp) delete syncMeta.deletes[bucket][id];
+        });
+      });
+      if (processed.settingsDirty && JSON.stringify(state.settings) === settingsSnapshot) syncMeta.settingsDirty = false;
+      persistSyncMeta();
+    }
 
     function markAllLocalDirty() {
       state.tasks.forEach(item => markDirty("tasks", item.id));
@@ -1487,36 +1502,39 @@
         }
 
         const userId = authUser.id, now = new Date().toISOString();
-        await applyPendingDeletes(userId);
+        const metaSnapshot = structuredClone(syncMeta);
+        const localSnapshot = structuredClone(state);
+        const settingsSnapshot = JSON.stringify(localSnapshot.settings);
+        await applyPendingDeletes(userId, metaSnapshot);
 
-        const dirtyTaskIds = new Set(Object.keys(syncMeta.dirty.tasks));
-        const dirtyHabitIds = new Set(Object.keys(syncMeta.dirty.habits));
-        const dirtyShoppingIds = new Set(Object.keys(syncMeta.dirty.shopping));
-        const dirtyDiaryDates = new Set(Object.keys(syncMeta.dirty.diary));
-        const dirtyHabitLogs = new Set(Object.keys(syncMeta.dirty.habitLogs));
+        const dirtyTaskIds = new Set(Object.keys(metaSnapshot.dirty.tasks));
+        const dirtyHabitIds = new Set(Object.keys(metaSnapshot.dirty.habits));
+        const dirtyShoppingIds = new Set(Object.keys(metaSnapshot.dirty.shopping));
+        const dirtyDiaryDates = new Set(Object.keys(metaSnapshot.dirty.diary));
+        const dirtyHabitLogs = new Set(Object.keys(metaSnapshot.dirty.habitLogs));
 
-        const taskRows = state.tasks.filter(t=>dirtyTaskIds.has(t.id)).map(t => ({
+        const taskRows = localSnapshot.tasks.filter(t=>dirtyTaskIds.has(t.id)).map(t => ({
           id:t.id, user_id:userId, title:t.title, task_date:t.date, task_time:t.time || null,
           priority:t.priority || "medium", category:t.category || "", reminder_minutes:Number(t.reminder ?? 60),
           note:t.note || "", done:Boolean(t.done), done_at:t.doneAt || null,
           created_at:t.createdAt || now, updated_at:t.updatedAt || now
         }));
-        const habitRows = state.habits.filter(h=>dirtyHabitIds.has(h.id)).map(h => ({
+        const habitRows = localSnapshot.habits.filter(h=>dirtyHabitIds.has(h.id)).map(h => ({
           id:h.id, user_id:userId, title:h.title, emoji:h.emoji || "✨", archived:false,
           created_at:h.createdAt || now, updated_at:h.updatedAt || now
         }));
-        const shoppingRows = state.shopping.filter(i=>dirtyShoppingIds.has(i.id)).map(i => ({
+        const shoppingRows = localSnapshot.shopping.filter(i=>dirtyShoppingIds.has(i.id)).map(i => ({
           id:i.id, user_id:userId, title:i.title, quantity:i.qty || "", category:i.category || "Другое",
           done:Boolean(i.done), created_at:i.createdAt || now, updated_at:i.updatedAt || now
         }));
         const logRows = [];
         dirtyHabitLogs.forEach(logKey => {
           const [date, habitId] = logKey.split("|");
-          if (state.habitLog?.[date]?.[habitId]) logRows.push({ id:`${userId}|${habitId}|${date}`, user_id:userId, habit_id:habitId, log_date:date, done:true, created_at:now });
+          if (localSnapshot.habitLog?.[date]?.[habitId]) logRows.push({ id:`${userId}|${habitId}|${date}`, user_id:userId, habit_id:habitId, log_date:date, done:true, created_at:now });
         });
         const diaryRows = [...dirtyDiaryDates].map(date => ({
-          id:`${userId}|${date}`, user_id:userId, entry_date:date, content:state.diary?.[date] || "",
-          mood:Number(state.mood?.[date] || 0), created_at:now, updated_at:now
+          id:`${userId}|${date}`, user_id:userId, entry_date:date, content:localSnapshot.diary?.[date] || "",
+          mood:Number(localSnapshot.mood?.[date] || 0), created_at:now, updated_at:now
         }));
 
         await upsertRows("tasks", taskRows);
@@ -1524,15 +1542,15 @@
         await upsertRows("habit_logs", logRows);
         await upsertRows("shopping_items", shoppingRows);
         await upsertRows("diary_entries", diaryRows);
-        if (syncMeta.settingsDirty) {
+        if (metaSnapshot.settingsDirty) {
           const { error } = await cloud.from("user_settings").upsert({
-            user_id:userId, theme:state.settings.theme, accent:state.settings.accent,
-            pattern:Boolean(state.settings.pattern), compact:Boolean(state.settings.compact),
-            default_reminder:Number(state.settings.defaultReminder), updated_at:now
+            user_id:userId, theme:localSnapshot.settings.theme, accent:localSnapshot.settings.accent,
+            pattern:Boolean(localSnapshot.settings.pattern), compact:Boolean(localSnapshot.settings.compact),
+            default_reminder:Number(localSnapshot.settings.defaultReminder), updated_at:now
           }, { onConflict:"user_id" });
           if (error) throw error;
         }
-        clearSyncMeta();
+        clearProcessedSyncMeta(metaSnapshot, settingsSnapshot);
         persistLocalState();
         updateAuthUI("online", "Синхронизировано");
         if (showToast) toast("Облако синхронизировано ☁️");
@@ -1544,7 +1562,7 @@
         return false;
       } finally {
         cloudSyncing = false;
-        if (cloudSyncAgain) { cloudSyncAgain = false; queueCloudSync(); }
+        if (cloudSyncAgain || hasPendingCloudChanges()) { cloudSyncAgain = false; queueCloudSync(); }
       }
     }
 
@@ -1560,16 +1578,16 @@
       if (error) throw error;
     }
 
-    async function applyPendingDeletes(userId) {
-      await deleteIds("tasks", Object.keys(syncMeta.deletes.tasks));
-      const habitIds = Object.keys(syncMeta.deletes.habits);
+    async function applyPendingDeletes(userId, pending=syncMeta) {
+      await deleteIds("tasks", Object.keys(pending.deletes.tasks));
+      const habitIds = Object.keys(pending.deletes.habits);
       if (habitIds.length) {
         const { error:logError } = await cloud.from("habit_logs").delete().in("habit_id", habitIds);
         if (logError) throw logError;
         await deleteIds("habits", habitIds);
       }
-      await deleteIds("shopping_items", Object.keys(syncMeta.deletes.shopping));
-      for (const logKey of Object.keys(syncMeta.deletes.habitLogs)) {
+      await deleteIds("shopping_items", Object.keys(pending.deletes.shopping));
+      for (const logKey of Object.keys(pending.deletes.habitLogs)) {
         const [date, habitId] = logKey.split("|");
         const { error } = await cloud.from("habit_logs").delete().eq("user_id",userId).eq("habit_id",habitId).eq("log_date",date);
         if (error) throw error;
