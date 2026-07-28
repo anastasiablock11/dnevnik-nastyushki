@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#b76f8c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Дневник Настюшки">
   <meta name="description" content="Личный календарь, дневник, привычки и список покупок Настюшки">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png">
@@ -552,7 +555,7 @@
 
           <section class="card"><div class="card-head"><h3>Напоминания</h3></div><div class="card-body">
             <div class="field"><label for="defaultReminder">Напоминание по умолчанию</label><select id="defaultReminder"></select></div>
-            <div class="subtle" style="margin-top:10px;line-height:1.5">Для каждого нового дела можно выбрать другое время: в момент события, заранее на несколько минут, часов, дней или вообще без напоминания.</div>
+            <div class="subtle" style="margin-top:10px;line-height:1.5">Для каждого нового дела можно выбрать другое время. На iPhone фоновые уведомления работают в приложении, добавленном на экран «Домой», даже когда оно закрыто.</div>
             <div style="margin-top:15px"><button class="btn primary" id="enableNotifications">🔔 Разрешить уведомления</button></div>
           </div></section>
 
@@ -569,7 +572,7 @@
             <div class="subtle" style="margin-top:12px;line-height:1.5">Резервную копию можно скачать в любой момент. При выполненном входе основная копия данных хранится в защищённом облаке и синхронизируется между устройствами.</div>
           </div></section>
 
-          <section class="card"><div class="card-head"><h3>О сайте</h3></div><div class="card-body"><div class="subtle" style="line-height:1.7"><strong style="color:var(--text)">Дневник Настюшки</strong><br>Версия 0.4 — облачная синхронизация и вход по паролю.<br><br>Записи защищены входом и правилами доступа Supabase.</div></div></section>
+          <section class="card"><div class="card-head"><h3>О сайте</h3></div><div class="card-body"><div class="subtle" style="line-height:1.7"><strong style="color:var(--text)">Дневник Настюшки</strong><br>Версия 0.5 — облачная синхронизация, вход по паролю и фоновые push-уведомления.<br><br>Записи защищены входом и правилами доступа Supabase.</div></div></section>
         </div>
       </section>
     </main>
@@ -658,6 +661,7 @@
     const SUPABASE_URL = "https://akikxtukzvxojyxhtizx.supabase.co";
     const SUPABASE_KEY = "sb_publishable_1Zoj_1Vts2-ZqnFh1S3-hQ_-RqoSPrU";
     const SITE_URL = "https://anastasiablock11.github.io/dnevnik-nastyushki/";
+    const VAPID_PUBLIC_KEY = "BMWNKYaEhdxz206oV4RcyoLsGnGupKyTa77qQ05SO4ioyT938X7-8NekW5Av72muwKDvbAP0Kjy8onjS25jL184";
     const cloud = window.supabase?.createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true }
     }) || null;
@@ -694,6 +698,7 @@
     let suppressCloudSync = false;
     let realtimeChannel = null;
     let authCooldownTimer = null;
+    let pushEnabled = false;
 
     const $ = (id) => document.getElementById(id);
     const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -710,7 +715,7 @@
       checkReminders();
       setInterval(checkReminders, 30000);
       if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-        navigator.serviceWorker.register("sw.js?v=4").then(registration => registration.update()).catch(() => {});
+        navigator.serviceWorker.register("./sw.js?v=6", { scope: "./" }).then(registration => registration.update()).catch(console.error);
       }
       updateAuthUI();
       await initCloud();
@@ -1160,6 +1165,7 @@
           toast("Записи с этого устройства перенесены в облако ☁️");
         }
         startRealtime();
+        await restorePushSubscriptionRecord().catch(error => console.warn("Не удалось обновить push-подписку", error));
         updateAuthUI("online", "Синхронизировано");
       } catch (error) {
         console.error(error);
@@ -1214,6 +1220,7 @@
     async function signOutCloud() {
       if (!cloud) return;
       if (!confirm("Выйти из облачного аккаунта? Локальная копия записей останется на этом устройстве.")) return;
+      await removePushSubscription().catch(error => console.warn("Не удалось отключить push при выходе", error));
       const { error } = await cloud.auth.signOut();
       if (error) toast("Не получилось выйти");
     }
@@ -1388,9 +1395,193 @@
       }, 900);
     }
 
-    async function requestNotifications(){if(!("Notification" in window)){toast("Этот браузер не поддерживает уведомления");return;}const p=await Notification.requestPermission();updateNotificationButtons();toast(p==="granted"?"Уведомления включены 🔔":"Разрешение не выдано");}
-    function updateNotificationButtons(){const on="Notification" in window&&Notification.permission==="granted";$("notifyTop").textContent=on?"🔔 Включены":"🔔 Уведомления";$("enableNotifications").textContent=on?"🔔 Уведомления включены":"🔔 Разрешить уведомления";}
-    function checkReminders(){const now=new Date();state.tasks.forEach(task=>{if(task.done||!task.time||task.reminder===-1)return;const due=taskDateTime(task),at=new Date(due.getTime()-task.reminder*60000),key=`${task.id}:${task.date}:${task.time}:${task.reminder}`;if(state.notified[key])return;const diff=now-at;if(diff>=0&&diff<70000){const body=`${formatDateTitle(task.date)} в ${task.time}${task.note?` · ${task.note}`:""}`;if("Notification" in window&&Notification.permission==="granted")new Notification(task.title,{body,tag:key});toast(`🔔 ${task.title} — ${body}`);state.notified[key]=new Date().toISOString();saveState();}});}
+    async function requestNotifications() {
+      if (!authUser) {
+        toast("Сначала войди в облако");
+        openAuthDialog();
+        return;
+      }
+      if (isIosDevice() && !isStandaloneApp()) {
+        toast("На iPhone открой Дневник с иконки на экране «Домой»");
+        return;
+      }
+      if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+        toast("На этом устройстве фоновые уведомления не поддерживаются");
+        return;
+      }
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        let subscription = await registration.pushManager.getSubscription();
+
+        if (Notification.permission === "granted" && subscription) {
+          await savePushSubscription(subscription);
+          pushEnabled = true;
+          await showTestNotification(registration);
+          await updateNotificationButtons();
+          toast("Тестовое уведомление отправлено 🔔");
+          return;
+        }
+
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          pushEnabled = false;
+          await updateNotificationButtons();
+          toast("Разрешение не выдано. Проверь настройки уведомлений iPhone");
+          return;
+        }
+
+        subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+          });
+        }
+
+        await savePushSubscription(subscription);
+        pushEnabled = true;
+        await showTestNotification(registration);
+        await updateNotificationButtons();
+        toast("Фоновые уведомления включены 🔔");
+      } catch (error) {
+        console.error(error);
+        pushEnabled = false;
+        await updateNotificationButtons();
+        toast(notificationErrorText(error));
+      }
+    }
+
+    async function showTestNotification(registration) {
+      await registration.showNotification("Дневник Настюшки", {
+        body: "Уведомления на этом устройстве работают 🌷",
+        icon: "./icon-192.png",
+        badge: "./icon-192.png",
+        tag: "dnevnik-push-test",
+        data: { url: SITE_URL }
+      });
+    }
+
+    async function savePushSubscription(subscription) {
+      if (!cloud || !authUser) throw new Error("Нет входа в облако");
+      const json = subscription.toJSON();
+      if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
+        throw new Error("Браузер не выдал ключи push-подписки");
+      }
+      const { error } = await cloud.from("push_subscriptions").upsert({
+        user_id: authUser.id,
+        endpoint: json.endpoint,
+        p256dh: json.keys.p256dh,
+        auth: json.keys.auth,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+        user_agent: navigator.userAgent,
+        device_name: isIosDevice() ? "iPhone / iPad" : "Браузер",
+        updated_at: new Date().toISOString()
+      }, { onConflict: "endpoint" });
+      if (error) throw error;
+    }
+
+    async function restorePushSubscriptionRecord() {
+      if (!authUser || !("serviceWorker" in navigator) || !("PushManager" in window)) return;
+      if (!("Notification" in window) || Notification.permission !== "granted") return;
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      if (!subscription) return;
+      await savePushSubscription(subscription);
+      pushEnabled = true;
+      await updateNotificationButtons();
+    }
+
+    async function removePushSubscription() {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      if (!subscription) return;
+      if (cloud && authUser) {
+        await cloud.from("push_subscriptions").delete().eq("endpoint", subscription.endpoint).eq("user_id", authUser.id);
+      }
+      await subscription.unsubscribe();
+      pushEnabled = false;
+      await updateNotificationButtons();
+    }
+
+    async function updateNotificationButtons() {
+      let on = false;
+      if (("Notification" in window) && Notification.permission === "granted" && ("serviceWorker" in navigator) && ("PushManager" in window)) {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          on = Boolean(await registration.pushManager.getSubscription());
+        } catch (error) {
+          console.warn(error);
+        }
+      }
+      pushEnabled = on;
+      const denied = ("Notification" in window) && Notification.permission === "denied";
+      $("notifyTop").textContent = on ? "🔔 Включены" : denied ? "🔕 Запрещены" : "🔔 Уведомления";
+      $("enableNotifications").textContent = on ? "🔔 Проверить уведомление" : denied ? "🔕 Разреши в настройках iPhone" : "🔔 Включить на этом устройстве";
+    }
+
+    function isStandaloneApp() {
+      return window.matchMedia?.("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    }
+
+    function isIosDevice() {
+      return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    }
+
+    function notificationErrorText(error) {
+      const message = String(error?.message || error || "");
+      if (/permission|denied/i.test(message)) return "Уведомления запрещены в настройках устройства";
+      if (/not allowed|user gesture/i.test(message)) return "Нажми кнопку ещё раз прямо в приложении с экрана «Домой»";
+      if (/registration|service worker/i.test(message)) return "Не удалось обновить приложение. Закрой и снова открой Дневник";
+      return "Не получилось подключить фоновые уведомления";
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+      const padding = "=".repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+      const rawData = atob(base64);
+      return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+    }
+
+    async function showFallbackNotification(task, body, key) {
+      try {
+        if (("serviceWorker" in navigator)) {
+          const registration = await navigator.serviceWorker.ready;
+          await registration.showNotification(task.title, {
+            body,
+            icon: "./icon-192.png",
+            badge: "./icon-192.png",
+            tag: key,
+            data: { url: SITE_URL }
+          });
+        } else {
+          new Notification(task.title, { body, tag: key });
+        }
+      } catch (error) {
+        console.warn(error);
+      }
+    }
+
+    function checkReminders() {
+      const now = new Date();
+      state.tasks.forEach(task => {
+        if (task.done || !task.time || task.reminder === -1) return;
+        const due = taskDateTime(task);
+        const at = new Date(due.getTime() - task.reminder * 60000);
+        const key = `${task.id}:${task.date}:${task.time}:${task.reminder}`;
+        if (state.notified[key]) return;
+        const diff = now - at;
+        if (diff >= 0 && diff < 70000) {
+          const body = `${formatDateTitle(task.date)} в ${task.time}${task.note ? ` · ${task.note}` : ""}`;
+          if (!pushEnabled && ("Notification" in window) && Notification.permission === "granted") {
+            showFallbackNotification(task, body, key);
+            toast(`🔔 ${task.title} — ${body}`);
+          }
+          state.notified[key] = new Date().toISOString();
+          saveState();
+        }
+      });
+    }
 
     function exportData(){const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`dnevnik-nastyushki-${todayKey()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast("Резервная копия скачана");}
     function importData(e){const file=e.target.files?.[0];e.target.value="";if(!file)return;const r=new FileReader();r.onload=()=>{try{const parsed=JSON.parse(r.result);if(!parsed||!Array.isArray(parsed.tasks))throw new Error();if(!confirm("Заменить текущие данные данными из файла?"))return;state={...structuredClone(defaultState),...parsed,settings:{...defaultState.settings,...(parsed.settings||{})}};saveState();applySettings();renderAll();toast("Данные восстановлены");}catch{toast("Не удалось прочитать файл");}};r.readAsText(file);}
