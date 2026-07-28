@@ -559,7 +559,7 @@
           <section class="card"><div class="card-head"><h3>Облако и вход</h3></div><div class="card-body">
             <div class="cloud-account">
               <div class="cloud-account-line"><div><strong id="cloudStatus">Не выполнен вход</strong><div class="cloud-email" id="cloudEmail">Данные сохраняются только на этом устройстве</div></div><span class="cloud-dot" id="settingsCloudDot"></span></div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="cloudLogin">Войти по почте</button><button class="btn" id="cloudSync" hidden>Синхронизировать сейчас</button><button class="btn danger" id="cloudLogout" hidden>Выйти</button></div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="cloudLogin">Войти по почте и паролю</button><button class="btn" id="cloudPassword" hidden>Создать или изменить пароль</button><button class="btn" id="cloudSync" hidden>Синхронизировать сейчас</button><button class="btn danger" id="cloudLogout" hidden>Выйти</button></div>
               <div class="sync-note">При первом входе открой обновлённый сайт на устройстве, где уже есть твои записи. Они автоматически перенесутся в облако. После этого войди с той же почтой на другом устройстве.</div>
             </div>
           </div></section>
@@ -569,7 +569,7 @@
             <div class="subtle" style="margin-top:12px;line-height:1.5">Резервную копию можно скачать в любой момент. При выполненном входе основная копия данных хранится в защищённом облаке и синхронизируется между устройствами.</div>
           </div></section>
 
-          <section class="card"><div class="card-head"><h3>О сайте</h3></div><div class="card-body"><div class="subtle" style="line-height:1.7"><strong style="color:var(--text)">Дневник Настюшки</strong><br>Версия 0.3 — облачная синхронизация и личный вход.<br><br>Записи защищены входом и правилами доступа Supabase.</div></div></section>
+          <section class="card"><div class="card-head"><h3>О сайте</h3></div><div class="card-body"><div class="subtle" style="line-height:1.7"><strong style="color:var(--text)">Дневник Настюшки</strong><br>Версия 0.4 — облачная синхронизация и вход по паролю.<br><br>Записи защищены входом и правилами доступа Supabase.</div></div></section>
         </div>
       </section>
     </main>
@@ -622,11 +622,24 @@
       <div class="modal-body">
         <div class="auth-step">
           <div class="field"><label for="authEmail">Электронная почта</label><input type="email" id="authEmail" required autocomplete="email" placeholder="name@example.com"></div>
-          <button class="btn primary" type="button" id="sendAuthCode">Получить код или ссылку</button>
-          <div id="authCodeBlock" hidden>
-            <div class="field"><label for="authCode">Код из письма</label><div class="auth-code-row"><input inputmode="numeric" autocomplete="one-time-code" id="authCode" maxlength="8" placeholder="6-значный код"><button class="btn primary" type="button" id="verifyAuthCode">Войти</button></div></div>
-          </div>
-          <div class="auth-message" id="authMessage">Мы отправим одноразовое письмо. Если в нём будет кнопка вместо цифр, просто нажми её.</div>
+          <div class="field"><label for="authPassword">Пароль</label><input type="password" id="authPassword" required minlength="6" autocomplete="current-password" placeholder="Не меньше 6 символов"></div>
+          <button class="btn primary" type="submit" id="passwordLogin">Войти</button>
+          <button class="btn" type="button" id="sendAuthLink">Получить ссылку для первого входа</button>
+          <div class="auth-message" id="authMessage">В установленном приложении входи по почте и паролю. Если пароль ещё не создан, открой ссылку из письма в Safari, а затем создай пароль в настройках дневника.</div>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="passwordDialog">
+    <form id="passwordForm">
+      <div class="modal-head"><h3>Создать или изменить пароль</h3><button class="icon-btn" type="button" data-close="passwordDialog">✕</button></div>
+      <div class="modal-body">
+        <div class="auth-step">
+          <div class="field"><label for="newPassword">Новый пароль</label><input type="password" id="newPassword" required minlength="6" autocomplete="new-password" placeholder="Не меньше 6 символов"></div>
+          <div class="field"><label for="confirmPassword">Повтори пароль</label><input type="password" id="confirmPassword" required minlength="6" autocomplete="new-password" placeholder="Повтори пароль"></div>
+          <button class="btn primary" type="submit" id="savePassword">Сохранить пароль</button>
+          <div class="auth-message" id="passwordMessage">После этого этим паролем можно будет войти в приложение с рабочего стола iPhone.</div>
         </div>
       </div>
     </form>
@@ -697,7 +710,7 @@
       checkReminders();
       setInterval(checkReminders, 30000);
       if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-        navigator.serviceWorker.register("sw.js").catch(() => {});
+        navigator.serviceWorker.register("sw.js?v=4").then(registration => registration.update()).catch(() => {});
       }
       updateAuthUI();
       await initCloud();
@@ -774,12 +787,12 @@
 
       $("accountTop").addEventListener("click", () => authUser ? switchView("settings") : openAuthDialog());
       $("cloudLogin").addEventListener("click", openAuthDialog);
+      $("cloudPassword").addEventListener("click", openPasswordDialog);
       $("cloudLogout").addEventListener("click", signOutCloud);
       $("cloudSync").addEventListener("click", manualCloudSync);
-      $("sendAuthCode").addEventListener("click", sendAuthCode);
-      $("verifyAuthCode").addEventListener("click", verifyAuthCode);
-      $("authCode").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); verifyAuthCode(); } });
-      $("authForm").addEventListener("submit", e => e.preventDefault());
+      $("sendAuthLink").addEventListener("click", sendAuthLink);
+      $("authForm").addEventListener("submit", signInWithPassword);
+      $("passwordForm").addEventListener("submit", saveCloudPassword);
 
       window.addEventListener("storage", () => { state=loadState(); applySettings(); renderAll(); });
     }
@@ -990,11 +1003,11 @@
     function openAuthDialog() {
       if (!cloud) { toast("Облако сейчас недоступно"); return; }
       $("authEmail").value = localStorage.getItem(EMAIL_KEY) || authUser?.email || "";
-      $("authCode").value = "";
-      $("authCodeBlock").hidden = true;
-      setAuthMessage("Мы отправим одноразовое письмо. Если в нём будет кнопка вместо цифр, просто нажми её.");
+      $("authPassword").value = "";
+      setAuthMessage("В установленном приложении входи по почте и паролю. Если пароль ещё не создан, сначала войди по ссылке в Safari и создай пароль в настройках дневника.");
       $("authDialog").showModal();
       updateAuthCooldownButton();
+      setTimeout(() => ($("authEmail").value ? $("authPassword") : $("authEmail")).focus(), 50);
     }
 
     function setAuthMessage(text, error=false) {
@@ -1002,14 +1015,42 @@
       $("authMessage").classList.toggle("error", error);
     }
 
-    async function sendAuthCode() {
+    function setPasswordMessage(text, error=false) {
+      $("passwordMessage").textContent = text;
+      $("passwordMessage").classList.toggle("error", error);
+    }
+
+    async function signInWithPassword(event) {
+      event.preventDefault();
+      const email = $("authEmail").value.trim().toLowerCase();
+      const password = $("authPassword").value;
+      if (!email || !email.includes("@")) { setAuthMessage("Проверь адрес электронной почты", true); return; }
+      if (password.length < 6) { setAuthMessage("Пароль должен содержать не меньше 6 символов", true); return; }
+      localStorage.setItem(EMAIL_KEY, email);
+      $("passwordLogin").disabled = true;
+      setAuthMessage("Выполняю вход…");
+      try {
+        const { data, error } = await cloud.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        if (data.session) {
+          $("authDialog").close();
+          toast("Вход выполнен ☁️");
+        }
+      } catch (error) {
+        setAuthMessage(authErrorText(error), true);
+      } finally {
+        $("passwordLogin").disabled = false;
+      }
+    }
+
+    async function sendAuthLink() {
       const email = $("authEmail").value.trim().toLowerCase();
       if (!email || !email.includes("@")) { setAuthMessage("Проверь адрес электронной почты", true); return; }
       const nextAllowed = Number(localStorage.getItem(AUTH_COOLDOWN_KEY) || 0);
-      if (Date.now() < nextAllowed) { updateAuthCooldownButton(); setAuthMessage("Новое письмо пока нельзя запрашивать. Дождись окончания таймера.", true); return; }
+      if (Date.now() < nextAllowed) { updateAuthCooldownButton(); setAuthMessage("Новую ссылку пока нельзя запрашивать. Дождись окончания таймера.", true); return; }
       localStorage.setItem(EMAIL_KEY, email);
-      $("sendAuthCode").disabled = true;
-      setAuthMessage("Отправляю письмо…");
+      $("sendAuthLink").disabled = true;
+      setAuthMessage("Отправляю ссылку…");
       try {
         const { error } = await cloud.auth.signInWithOtp({
           email,
@@ -1017,8 +1058,7 @@
         });
         if (error) throw error;
         setAuthCooldown(60);
-        $("authCodeBlock").hidden = false;
-        setAuthMessage("Письмо отправлено. Открой самое свежее письмо на этом устройстве. Новое письмо можно запросить через минуту.");
+        setAuthMessage("Ссылка отправлена. Открой самое свежее письмо в Safari. После входа открой настройки дневника и создай пароль.");
       } catch (error) {
         const code = String(error?.code || "");
         if (code === "over_email_send_rate_limit") setAuthCooldown(3600);
@@ -1029,6 +1069,36 @@
       }
     }
 
+    function openPasswordDialog() {
+      if (!authUser) { openAuthDialog(); return; }
+      $("newPassword").value = "";
+      $("confirmPassword").value = "";
+      setPasswordMessage("Придумай пароль. Затем войди с этой же почтой и паролем в приложении на рабочем столе iPhone.");
+      $("passwordDialog").showModal();
+      setTimeout(() => $("newPassword").focus(), 50);
+    }
+
+    async function saveCloudPassword(event) {
+      event.preventDefault();
+      if (!authUser) { $("passwordDialog").close(); openAuthDialog(); return; }
+      const password = $("newPassword").value;
+      const confirmPassword = $("confirmPassword").value;
+      if (password.length < 6) { setPasswordMessage("Пароль должен содержать не меньше 6 символов", true); return; }
+      if (password !== confirmPassword) { setPasswordMessage("Пароли не совпадают", true); return; }
+      $("savePassword").disabled = true;
+      setPasswordMessage("Сохраняю пароль…");
+      try {
+        const { error } = await cloud.auth.updateUser({ password });
+        if (error) throw error;
+        $("passwordDialog").close();
+        toast("Пароль сохранён 🔐");
+      } catch (error) {
+        setPasswordMessage(authErrorText(error), true);
+      } finally {
+        $("savePassword").disabled = false;
+      }
+    }
+
     function setAuthCooldown(seconds) {
       localStorage.setItem(AUTH_COOLDOWN_KEY, String(Date.now() + seconds * 1000));
       updateAuthCooldownButton();
@@ -1036,7 +1106,7 @@
 
     function updateAuthCooldownButton() {
       clearTimeout(authCooldownTimer);
-      const button = $("sendAuthCode");
+      const button = $("sendAuthLink");
       const nextAllowed = Number(localStorage.getItem(AUTH_COOLDOWN_KEY) || 0);
       const left = Math.max(0, Math.ceil((nextAllowed - Date.now()) / 1000));
       if (left > 0) {
@@ -1047,28 +1117,8 @@
         authCooldownTimer = setTimeout(updateAuthCooldownButton, 1000);
       } else {
         button.disabled = false;
-        button.textContent = "Получить код или ссылку";
+        button.textContent = "Получить ссылку для первого входа";
         localStorage.removeItem(AUTH_COOLDOWN_KEY);
-      }
-    }
-
-    async function verifyAuthCode() {
-      const email = $("authEmail").value.trim().toLowerCase();
-      const token = $("authCode").value.trim().replace(/\s/g, "");
-      if (!email || !token) { setAuthMessage("Введи почту и код из письма", true); return; }
-      $("verifyAuthCode").disabled = true;
-      setAuthMessage("Проверяю код…");
-      try {
-        const { data, error } = await cloud.auth.verifyOtp({ email, token, type:"email" });
-        if (error) throw error;
-        if (data.session) {
-          $("authDialog").close();
-          toast("Вход выполнен ☁️");
-        }
-      } catch (error) {
-        setAuthMessage(authErrorText(error), true);
-      } finally {
-        $("verifyAuthCode").disabled = false;
       }
     }
 
@@ -1076,7 +1126,8 @@
       const msg = String(error?.message || error || "");
       const code = String(error?.code || "");
       if (/expired/i.test(msg) || code === "otp_expired") return "Код или ссылка уже устарели. Запроси новое письмо после окончания таймера.";
-      if (/invalid/i.test(msg)) return "Код не подошёл. Проверь цифры или используй самое свежее письмо.";
+      if (code === "invalid_credentials" || /invalid login credentials/i.test(msg)) return "Неверная почта или пароль. Если пароль ещё не создан, войди по ссылке в Safari и создай его в настройках.";
+      if (/invalid/i.test(msg)) return "Данные не подошли. Проверь почту и пароль.";
       if (code === "over_email_send_rate_limit") return "Достигнут лимит отправки писем. Подожди примерно 1 час и не нажимай кнопку повторно.";
       if (code === "over_request_rate_limit") return "Слишком много запросов с этого устройства. Подожди около 5 минут и попробуй один раз.";
       if (Number(error?.status) === 429 || /rate/i.test(msg)) return "Сработал временный лимит. Подожди не меньше 5 минут и попробуй один раз.";
@@ -1176,6 +1227,7 @@
       $("cloudStatus").textContent = status;
       $("cloudEmail").textContent = signed ? email : "Данные сохраняются только на этом устройстве";
       $("cloudLogin").hidden = signed;
+      $("cloudPassword").hidden = !signed;
       $("cloudLogout").hidden = !signed;
       $("cloudSync").hidden = !signed;
       $("sidebarCloudTitle").textContent = signed ? "Облако подключено" : "Облачная синхронизация";
