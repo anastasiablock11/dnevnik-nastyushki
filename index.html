@@ -241,8 +241,31 @@
     .habit-emoji { width:40px; height:40px; display:grid; place-items:center; border-radius:13px; background:color-mix(in srgb,var(--lilac) 14%,transparent); font-size:21px; }
     .habit-title { font-weight:740; }
     .habit-streak { color:var(--muted); font-size:11px; margin-top:4px; }
-    .habit-toggle { width:42px; height:42px; border-radius:14px; border:1px solid var(--line); background:var(--surface-solid); font-size:18px; }
-    .habit-toggle.checked { color:white; border-color:transparent; background:linear-gradient(145deg,var(--rose-deep),var(--lilac-deep)); }
+    .habit-actions { display:flex; gap:6px; align-items:center; }
+    .habit-status {
+      width:39px; height:39px; border-radius:13px; border:1px solid var(--line); background:var(--surface-solid);
+      display:grid; place-items:center; font-size:18px; font-weight:850; transition:.16s ease;
+    }
+    .habit-status:hover { transform:translateY(-1px); }
+    .habit-status.done.active { color:white; border-color:transparent; background:var(--green); }
+    .habit-status.missed.active { color:white; border-color:transparent; background:var(--danger); }
+    .habit-item.is-missed { background:color-mix(in srgb,var(--danger) 5%,var(--surface-solid)); }
+    .habit-item.is-done { background:color-mix(in srgb,var(--green) 5%,var(--surface-solid)); }
+    .habit-date-title { font-weight:800; }
+    .habit-date-note { color:var(--muted); font-size:12px; margin-top:4px; }
+    .habit-calendar .day { min-height:58px; }
+    .habit-day-summary { position:absolute; left:7px; right:7px; bottom:7px; display:flex; gap:5px; font-size:9px; font-weight:800; }
+    .habit-day-summary .ok { color:var(--green); }
+    .habit-day-summary .miss { color:var(--danger); }
+    .day.selected .habit-day-summary span { color:white; }
+
+    .category-row { display:flex; gap:8px; align-items:end; }
+    .category-row .field { flex:1; }
+    .category-chip { display:inline-flex; align-items:center; gap:7px; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:750; background:var(--surface-soft); }
+    .category-swatch { width:11px; height:11px; border-radius:4px; flex:0 0 auto; }
+    .category-manager { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .category-manage-item { display:flex; align-items:center; gap:6px; padding:6px 8px 6px 10px; border:1px solid var(--line); border-radius:999px; background:var(--surface-solid); }
+    .category-manage-item button { border:0; background:transparent; color:var(--muted); padding:0 2px; }
 
     .calendar-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
     .calendar-title { font-weight:800; font-size:18px; text-transform:none; }
@@ -261,19 +284,17 @@
     .day-number { font-weight:750; }
     .holiday-mark { position:absolute; top:6px; right:7px; font-size:9px; line-height:1; color:var(--rose-deep); }
     .day.selected .holiday-mark { color:white; }
-    .day-dots { position:absolute; left:7px; right:7px; bottom:7px; display:flex; align-items:center; gap:4px; flex-wrap:wrap; min-height:10px; }
-    .dot { width:7px; height:7px; border-radius:999px; background:#9a7aa5; box-shadow:0 0 0 1px color-mix(in srgb,var(--surface-solid) 65%,transparent); }
-    .dot.priority-low { width:5px; height:5px; }
-    .dot.priority-medium { width:7px; height:7px; }
-    .dot.priority-high { width:10px; height:10px; }
-    .dot.category-work { background:#4f86d9; }
-    .dot.category-home { background:#67a979; }
-    .dot.category-health { background:#e07b86; }
-    .dot.category-personal { background:#a875c2; }
-    .dot.category-other { background:#d39a4a; }
-    .day.selected .dot { box-shadow:0 0 0 1px rgba(255,255,255,.82); }
+    .day-markers { position:absolute; left:7px; right:7px; bottom:7px; display:grid; gap:3px; min-height:4px; }
+    .task-ribbon { height:3px; border-radius:999px; background:var(--task-color,#9a7aa5); opacity:.96; }
+    .task-ribbon.priority-low { width:42%; }
+    .task-ribbon.priority-medium { width:68%; }
+    .task-ribbon.priority-high { width:100%; height:4px; }
+    .task-ribbon.done { width:55%; background:#aaa1a6; opacity:.58; }
+    .task-more { position:absolute; right:7px; bottom:5px; font-size:8px; color:var(--muted); font-weight:800; }
+    .day.selected .task-ribbon { box-shadow:0 0 0 1px rgba(255,255,255,.68); }
+    .day.selected .task-more { color:white; }
 
-    .shopping-add { display:grid; grid-template-columns:minmax(0,1fr) 130px 80px auto; gap:8px; margin-bottom:14px; }
+    .shopping-add { display:grid; grid-template-columns:minmax(0,1fr) 110px minmax(130px,.65fr) 42px auto; gap:8px; margin-bottom:14px; align-items:end; }
     .shopping-item {
       display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:11px; align-items:center;
       padding:12px; border:1px solid var(--line); border-radius:var(--radius-md); background:color-mix(in srgb,var(--surface-solid) 88%,transparent);
@@ -364,9 +385,11 @@
       .card-head { padding:15px 16px; }
       .card-body { padding:15px 16px 18px; }
       .grid.equal, .settings-grid { grid-template-columns:1fr; }
-      .shopping-add { grid-template-columns:minmax(0,1fr) 104px; }
-      .shopping-add select { grid-column:1/2; }
-      .shopping-add .add-shopping { grid-column:2/3; grid-row:2; padding-left:8px; padding-right:8px; font-size:13px; }
+      .shopping-add { grid-template-columns:minmax(0,1fr) 42px; }
+      #shoppingTitle, #shoppingQty { grid-column:1/-1; }
+      #shoppingCategory { grid-column:1/2; }
+      #shoppingAddCategory { grid-column:2/3; }
+      .shopping-add .add-shopping { grid-column:1/-1; padding-left:8px; padding-right:8px; font-size:13px; }
       .diary-layout { grid-template-columns:1fr; }
       .date-picker-card { padding:15px; }
       .form-grid { grid-template-columns:1fr; }
@@ -384,7 +407,7 @@
       .stat strong { font-size:24px; }
       .calendar { gap:4px; }
       .day { min-height:48px; border-radius:11px; }
-      .day-dots { left:5px; right:5px; bottom:5px; }
+      .day-markers { left:5px; right:5px; bottom:5px; }
     }
 
 
@@ -514,14 +537,20 @@
       <section class="view" data-view-panel="habits">
         <div class="grid two">
           <section class="card">
-            <div class="card-head"><div><h3>Мои привычки</h3><span class="subtle">Отмечай то, что сделала сегодня</span></div><button class="btn small primary" id="addHabitBtn">＋ Новая</button></div>
+            <div class="card-head"><div><h3>Мои привычки</h3><span class="subtle" id="habitSelectedSubtitle">Отметки за сегодня</span></div><button class="btn small primary" id="addHabitBtn">＋ Новая</button></div>
             <div class="card-body">
               <div class="progress-wrap"><div class="progress-line"><div class="progress-fill" id="habitProgress"></div></div><div class="progress-caption"><span id="habitProgressCaption">0 из 0</span><span id="habitProgressPercent">0%</span></div></div>
               <div class="habit-list" id="habitList"></div>
             </div>
           </section>
           <div class="stack">
-            <section class="card"><div class="card-head"><h3>Идеи для привычек</h3></div><div class="card-body"><div class="subtle" style="line-height:1.8">💧 Выпить воду<br>💊 Принять лекарство или витамины<br>🚶 Сделать нужное количество шагов<br>🧴 Уход за собой<br>📚 Почитать<br>🧘 Сделать разминку</div></div></section>
+            <section class="card">
+              <div class="card-head"><div><h3>Календарь привычек</h3><span class="subtle">Можно выбрать прошедший день и поставить ✓ или ✕</span></div></div>
+              <div class="card-body">
+                <div class="calendar-toolbar"><button class="btn icon" id="habitPrevMonth">‹</button><div class="calendar-title" id="habitCalendarTitle"></div><button class="btn icon" id="habitNextMonth">›</button></div>
+                <div class="calendar habit-calendar" id="habitCalendarGrid"></div>
+              </div>
+            </section>
             <section class="card"><div class="card-head"><h3>Прогресс недели</h3></div><div class="card-body" id="weeklyHabitSummary"></div></section>
           </div>
         </div>
@@ -534,7 +563,8 @@
             <form class="shopping-add" id="shoppingForm">
               <input id="shoppingTitle" maxlength="150" placeholder="Что купить?" required>
               <input id="shoppingQty" maxlength="30" placeholder="Кол-во">
-              <select id="shoppingCategory"><option>Продукты</option><option>Дом</option><option>Красота</option><option>Здоровье</option><option>Одежда</option><option>Другое</option></select>
+              <input id="shoppingCategory" list="categoryOptions" maxlength="50" placeholder="Категория">
+              <button class="btn icon" id="shoppingAddCategory" type="button" title="Добавить категорию">＋</button>
               <button class="btn primary add-shopping" type="submit">Добавить</button>
             </form>
             <div class="shopping-groups" id="shoppingGroups"></div>
@@ -580,12 +610,14 @@
             </div>
           </div></section>
 
+          <section class="card"><div class="card-head"><div><h3>Категории</h3><span class="subtle">Один цвет используется в делах, календаре и покупках</span></div><button class="btn small primary" id="addCategorySettings">＋ Добавить</button></div><div class="card-body"><div class="category-manager" id="categoryManager"></div></div></section>
+
           <section class="card"><div class="card-head"><h3>Данные</h3></div><div class="card-body">
             <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" id="exportData">Скачать резервную копию</button><button class="btn small" id="importData">Загрузить копию</button><input id="importFile" type="file" accept="application/json" hidden></div>
             <div class="subtle" style="margin-top:12px;line-height:1.5">Резервную копию можно скачать в любой момент. При выполненном входе основная копия данных хранится в защищённом облаке и синхронизируется между устройствами.</div>
           </div></section>
 
-          <section class="card"><div class="card-head"><h3>О сайте</h3></div><div class="card-body"><div class="subtle" style="line-height:1.7"><strong style="color:var(--text)">Дневник Настюшки</strong><br>Версия 0.6 — безопасная синхронизация, автокопии, праздники и цветные отметки в календаре.<br><br>Записи защищены входом и правилами доступа Supabase.</div></div></section>
+          <section class="card"><div class="card-head"><h3>О сайте</h3></div><div class="card-body"><div class="subtle" style="line-height:1.7"><strong style="color:var(--text)">Дневник Настюшки</strong><br>Версия 0.9 — спокойное сохранение текста, календарь привычек, гибкие категории и новые отметки.<br><br>Записи защищены входом и правилами доступа Supabase.</div></div></section>
         </div>
       </section>
     </main>
@@ -610,11 +642,27 @@
           <div class="field"><label for="taskDate">Дата</label><input type="date" id="taskDate" required></div>
           <div class="field"><label for="taskTime">Время</label><input type="time" id="taskTime"></div>
           <div class="field"><label for="taskPriority">Важность</label><select id="taskPriority"><option value="medium">Обычное</option><option value="high">Срочное</option><option value="low">Можно позже</option></select></div>
-          <div class="field"><label for="taskCategory">Категория</label><input id="taskCategory" maxlength="50" placeholder="Работа, здоровье, дом..."></div>
+          <div class="category-row"><div class="field"><label for="taskCategory">Категория</label><input id="taskCategory" list="categoryOptions" maxlength="50" placeholder="Работа, здоровье, дом..."></div><button class="btn icon" id="taskAddCategory" type="button" title="Добавить категорию">＋</button></div>
           <div class="field"><label for="taskReminder">Когда напомнить</label><select id="taskReminder"></select></div>
           <div class="field full"><label for="taskNote">Заметка</label><textarea id="taskNote" maxlength="700" placeholder="Адрес, детали или любая подсказка"></textarea></div>
         </div>
         <div class="modal-actions"><button class="btn" type="button" data-close="taskDialog">Отмена</button><button class="btn primary" type="submit">Сохранить</button></div>
+      </div>
+    </form>
+  </dialog>
+
+  <datalist id="categoryOptions"></datalist>
+
+  <dialog id="categoryDialog">
+    <form id="categoryForm">
+      <div class="modal-head"><h3>Новая категория</h3><button class="icon-btn" type="button" data-close="categoryDialog">✕</button></div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="field"><label for="categoryEmojiInput">Значок</label><input id="categoryEmojiInput" maxlength="4" value="📌" placeholder="🏠"></div>
+          <div class="field"><label for="categoryColorInput">Цвет</label><input id="categoryColorInput" type="color" value="#8f76b8"></div>
+          <div class="field full"><label for="categoryNameInput">Название</label><input id="categoryNameInput" maxlength="50" required placeholder="Например: Семья"></div>
+        </div>
+        <div class="modal-actions"><button class="btn" type="button" data-close="categoryDialog">Отмена</button><button class="btn primary" type="submit">Сохранить</button></div>
       </div>
     </form>
   </dialog>
@@ -685,6 +733,18 @@
       [60,"За 1 час"],[120,"За 2 часа"],[180,"За 3 часа"],[360,"За 6 часов"],[720,"За 12 часов"],[1440,"За 1 день"],[2880,"За 2 дня"],[10080,"За неделю"]
     ];
 
+    const DEFAULT_CATEGORIES = [
+      {name:"Работа", color:"#557fd4", emoji:"💼"},
+      {name:"Дом", color:"#62a579", emoji:"🏠"},
+      {name:"Семья", color:"#d6869d", emoji:"👨‍👩‍👧"},
+      {name:"Здоровье", color:"#df7777", emoji:"💊"},
+      {name:"Красота", color:"#b878bd", emoji:"💄"},
+      {name:"Деньги", color:"#c79342", emoji:"💰"},
+      {name:"Продукты", color:"#6c9f58", emoji:"🥑"},
+      {name:"Одежда", color:"#8b76c8", emoji:"👗"},
+      {name:"Другое", color:"#918188", emoji:"📌"}
+    ];
+
     const defaultState = {
       tasks: [],
       habits: [
@@ -696,7 +756,7 @@
       diary: {},
       mood: {},
       notified: {},
-      settings: { theme:"light", accent:"mix", pattern:true, compact:false, defaultReminder:60 }
+      settings: { theme:"light", accent:"mix", pattern:true, compact:false, defaultReminder:60, categories:structuredClone(DEFAULT_CATEGORIES) }
     };
 
     let state = loadState();
@@ -704,7 +764,12 @@
     let activeView = "today";
     let selectedDate = todayKey();
     let calendarMonth = startOfMonth(new Date());
-    let saveTimer = null;
+    let selectedHabitDate = todayKey();
+    let habitCalendarMonth = startOfMonth(new Date());
+    let categoryTargetId = null;
+    let diaryLocalSaveTimer = null;
+    let diaryCloudSaveTimer = null;
+    let lastDiaryInputAt = 0;
     let authUser = null;
     let authReady = false;
     let cloudSyncTimer = null;
@@ -733,7 +798,7 @@
       checkReminders();
       setInterval(checkReminders, 30000);
       if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-        navigator.serviceWorker.register("./sw.js?v=8", { scope: "./" }).then(registration => registration.update()).catch(console.error);
+        navigator.serviceWorker.register("./sw.js?v=9", { scope: "./" }).then(registration => registration.update()).catch(console.error);
       }
       updateAuthUI();
       await initCloud();
@@ -747,11 +812,11 @@
         return {
           ...structuredClone(defaultState),
           ...parsed,
-          settings: {...defaultState.settings, ...(parsed.settings || {})},
+          settings: normalizeSettings({...defaultState.settings, ...(parsed.settings || {})}, parsed),
           tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
           habits: Array.isArray(parsed.habits) ? parsed.habits : structuredClone(defaultState.habits),
           shopping: Array.isArray(parsed.shopping) ? parsed.shopping : [],
-          habitLog: parsed.habitLog || {}, diary: parsed.diary || {}, mood: parsed.mood || {}, notified: parsed.notified || {}
+          habitLog: normalizeHabitLog(parsed.habitLog || {}), diary: parsed.diary || {}, mood: parsed.mood || {}, notified: parsed.notified || {}
         };
       } catch { return structuredClone(defaultState); }
     }
@@ -891,16 +956,24 @@
 
       $("prevMonth").addEventListener("click", () => { calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth()-1, 1); renderCalendar(); });
       $("nextMonth").addEventListener("click", () => { calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth()+1, 1); renderCalendar(); });
+      $("habitPrevMonth").addEventListener("click", () => { habitCalendarMonth = new Date(habitCalendarMonth.getFullYear(), habitCalendarMonth.getMonth()-1, 1); renderHabitCalendar(); });
+      $("habitNextMonth").addEventListener("click", () => { habitCalendarMonth = new Date(habitCalendarMonth.getFullYear(), habitCalendarMonth.getMonth()+1, 1); renderHabitCalendar(); });
 
       $("addHabitBtn").addEventListener("click", openHabitDialog);
       $("habitForm").addEventListener("submit", addHabit);
 
       $("shoppingForm").addEventListener("submit", addShoppingItem);
       $("clearBought").addEventListener("click", clearBoughtItems);
+      $("shoppingAddCategory").addEventListener("click", () => openCategoryDialog("shoppingCategory"));
+      $("taskAddCategory").addEventListener("click", () => openCategoryDialog("taskCategory"));
+      $("addCategorySettings").addEventListener("click", () => openCategoryDialog(null));
+      $("categoryForm").addEventListener("submit", saveCategory);
 
-      $("diaryDate").addEventListener("change", renderDiary);
-      $("diaryText").addEventListener("input", () => scheduleDiarySave($("diaryDate").value, $("diaryText").value, "diarySaveState"));
-      $("quickDiary").addEventListener("input", () => scheduleDiarySave(todayKey(), $("quickDiary").value, "quickDiaryState"));
+      $("diaryDate").addEventListener("change", () => renderDiary(true));
+      $("diaryText").addEventListener("input", () => handleDiaryInput($("diaryDate").value, $("diaryText").value, "diarySaveState", "diaryText"));
+      $("quickDiary").addEventListener("input", () => handleDiaryInput(todayKey(), $("quickDiary").value, "quickDiaryState", "quickDiary"));
+      $("diaryText").addEventListener("blur", flushDiarySave);
+      $("quickDiary").addEventListener("blur", flushDiarySave);
       $$(".mood").forEach(btn => btn.addEventListener("click", (e) => { e.preventDefault(); setMood($("diaryDate").value, Number(btn.dataset.mood)); }));
 
       $("notifyTop").addEventListener("click", requestNotifications);
@@ -932,7 +1005,8 @@
       $$('[data-view]').forEach(btn => btn.classList.toggle('active', btn.dataset.view === view));
       updateHeader();
       if (view === "calendar") renderCalendarView();
-      if (view === "diary") renderDiary();
+      if (view === "habits") renderHabits();
+      if (view === "diary") renderDiary(true);
       window.scrollTo({top:0, behavior:"smooth"});
     }
 
@@ -970,7 +1044,7 @@
     function greeting() { const h=new Date().getHours(); return h<6?"Доброй ночи":h<12?"Доброе утро":h<18?"Добрый день":"Добрый вечер"; }
 
     function renderAll() {
-      renderToday(); renderCalendarView(); renderHabits(); renderShopping(); renderDiary(); renderBadges(); updateNotificationButtons();
+      renderToday(); renderCalendarView(); renderHabits(); renderShopping(); renderDiary(false); renderCategoryControls(); renderBadges(); updateNotificationButtons();
     }
 
     function renderToday() {
@@ -994,7 +1068,7 @@
 
       const shoppingLeft=state.shopping.filter(i=>!i.done).length;
       $("statShopping").textContent=shoppingLeft;
-      $("quickDiary").value=state.diary[today]||"";
+      if (document.activeElement !== $("quickDiary")) $("quickDiary").value=state.diary[today]||"";
       $("heroTitle").textContent = active ? `Сегодня ${plural(active,"дело","дела","дел")}` : "Сегодня можно выдохнуть 🌸";
     }
 
@@ -1017,8 +1091,9 @@
     function saveTaskFromDialog(e) {
       e.preventDefault();
       const id=$("taskId").value;
-      const payload={title:$("taskTitle").value.trim(),date:$("taskDate").value,time:$("taskTime").value,priority:$("taskPriority").value,category:$("taskCategory").value.trim(),reminder:Number($("taskReminder").value),note:$("taskNote").value.trim()};
+      const payload={title:$("taskTitle").value.trim(),date:$("taskDate").value,time:$("taskTime").value,priority:$("taskPriority").value,category:$("taskCategory").value.trim()||"Другое",reminder:Number($("taskReminder").value),note:$("taskNote").value.trim()};
       if(!payload.title||!payload.date) return;
+      ensureCategory(payload.category);
       if(id){ const task=state.tasks.find(t=>t.id===id); if(task) { Object.assign(task,payload,{updatedAt:new Date().toISOString()}); markDirty("tasks", task.id); } toast("Дело обновлено"); }
       else { const task=newTask(payload); state.tasks.push(task); markDirty("tasks", task.id); toast("Дело добавлено"); }
       state.notified={}; saveState(); $("taskDialog").close(); selectedDate=payload.date; calendarMonth=startOfMonth(parseDate(payload.date)); renderAll();
@@ -1040,8 +1115,10 @@
           <div class="item-actions"><button class="icon-btn edit" title="Изменить">✏️</button><button class="icon-btn delete" title="Удалить">🗑️</button></div>`;
         node.querySelector(".task-title").textContent=task.title;
         const meta=node.querySelector(".task-meta");
-        const bits=[task.time?`🕒 ${task.time}`:"", task.category?`# ${task.category}`:"", priorityLabel(task.priority), reminderLabel].filter(Boolean);
-        bits.forEach((text,i)=>{const span=document.createElement("span"); span.className=`chip ${i===2?task.priority:""}`; span.textContent=text; meta.appendChild(span);});
+        if(task.time){const span=document.createElement("span");span.className="chip";span.textContent=`🕒 ${task.time}`;meta.appendChild(span);}
+        if(task.category){const cat=categoryByName(task.category);const span=document.createElement("span");span.className="category-chip";span.innerHTML=`<span class="category-swatch"></span><span></span>`;span.querySelector(".category-swatch").style.background=cat.color;span.querySelector("span:last-child").textContent=`${cat.emoji} ${task.category}`;meta.appendChild(span);}
+        const priority=document.createElement("span");priority.className=`chip ${task.priority}`;priority.textContent=priorityLabel(task.priority);meta.appendChild(priority);
+        if(reminderLabel){const span=document.createElement("span");span.className="chip";span.textContent=reminderLabel;meta.appendChild(span);}
         if(task.note) node.querySelector(".task-note").textContent=task.note;
         node.querySelector(".check").addEventListener("click",()=>toggleTask(task.id));
         node.querySelector(".edit").addEventListener("click",()=>openTaskDialog(task,task.date));
@@ -1053,66 +1130,131 @@
     function toggleTask(id){const t=state.tasks.find(x=>x.id===id);if(!t)return;t.done=!t.done;t.doneAt=t.done?new Date().toISOString():null;t.updatedAt=new Date().toISOString();markDirty("tasks",id);saveState();renderAll();toast(t.done?"Готово! Умничка ✨":"Дело возвращено");}
     function deleteTask(id){const t=state.tasks.find(x=>x.id===id);if(!t||!confirm(`Удалить «${t.title}»?`))return;markDeleted("tasks",id);state.tasks=state.tasks.filter(x=>x.id!==id);saveState();renderAll();toast("Дело удалено");}
 
-    function renderCalendarView(){renderCalendar(); const tasks=sortTasks(state.tasks.filter(t=>t.date===selectedDate)); $("selectedDateTitle").textContent=formatDateTitle(selectedDate); $("selectedDateSubtitle").textContent=tasks.length?`${tasks.length} ${plural(tasks.length,"дело","дела","дел")}`:"Свободный день"; renderTaskList($("selectedTaskList"),tasks,selectedDate);}
+    function renderCalendarView(){renderCalendar(); const tasks=sortTasks(state.tasks.filter(t=>t.date===selectedDate)),left=tasks.filter(t=>!t.done).length,done=tasks.length-left; $("selectedDateTitle").textContent=formatDateTitle(selectedDate); $("selectedDateSubtitle").textContent=tasks.length?`${left} осталось${done?` · ${done} выполнено`:""}`:"Свободный день"; renderTaskList($("selectedTaskList"),tasks,selectedDate);}
 
     function renderCalendar(){
       const grid=$("calendarGrid"); grid.innerHTML="";
-      const rawTitle=calendarMonth.toLocaleDateString("ru-RU",{month:"long",year:"numeric"});
-      $("calendarTitle").textContent=rawTitle.replace(/^./,c=>c.toUpperCase());
+      $("calendarTitle").textContent=formatMonthTitle(calendarMonth);
       ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].forEach((w,index)=>{const d=document.createElement("div");d.className=`weekday${index>4?" weekend-label":""}`;d.textContent=w;grid.appendChild(d);});
-      const first=startOfWeek(calendarMonth), tasksByDate={};
-      state.tasks.forEach(task=>{(tasksByDate[task.date] ||= []).push(task);});
+      const first=startOfWeek(calendarMonth);
+      const tasksByDate={}; state.tasks.forEach(task=>{(tasksByDate[task.date] ||= []).push(task);});
       for(let i=0;i<42;i++){
-        const date=addDays(first,i), key=dateKey(date), holiday=getRussianHolidayName(key); const btn=document.createElement("button"); btn.className="day";
-        if(date.getDay()===0||date.getDay()===6)btn.classList.add("weekend");
-        if(holiday)btn.classList.add("holiday");
+        const date=addDays(first,i), key=dateKey(date), tasks=sortTasks(tasksByDate[key]||[]); const btn=document.createElement("button"); btn.className="day";
+        const isWeekend=date.getDay()===0||date.getDay()===6, holidayName=getRussianHolidayName(key), isHoliday=Boolean(holidayName);
+        if(isWeekend)btn.classList.add("weekend"); if(isHoliday)btn.classList.add("holiday");
         if(date.getMonth()!==calendarMonth.getMonth())btn.classList.add("muted"); if(key===todayKey())btn.classList.add("today"); if(key===selectedDate)btn.classList.add("selected");
-        btn.innerHTML=`<span class="day-number">${date.getDate()}</span>${holiday?'<span class="holiday-mark">✦</span>':''}<span class="day-dots"></span>`;
-        btn.title=holiday?`${formatDateTitle(key)} — ${holiday}`:formatDateTitle(key);
-        sortTasks(tasksByDate[key]||[]).slice(0,6).forEach(task=>{
-          const dot=document.createElement("span");
-          dot.className=`dot ${calendarCategoryClass(task.category)} priority-${task.priority||"medium"}`;
-          dot.title=`${task.title}${task.category?` · ${task.category}`:""} · ${priorityLabel(task.priority)}`;
-          btn.querySelector(".day-dots").appendChild(dot);
-        });
+        btn.innerHTML=`<span class="day-number">${date.getDate()}</span>${isHoliday?'<span class="holiday-mark">★</span>':''}<span class="day-markers"></span>`;if(holidayName)btn.title=holidayName;
+        const markers=btn.querySelector(".day-markers");
+        tasks.slice(0,3).forEach(task=>{const ribbon=document.createElement("span");ribbon.className=`task-ribbon ${task.done?"done":`priority-${task.priority||"medium"}`}`;if(!task.done)ribbon.style.setProperty("--task-color",categoryColor(task.category));ribbon.title=`${task.done?"Выполнено: ":""}${task.title}`;markers.appendChild(ribbon);});
+        if(tasks.length>3){const more=document.createElement("span");more.className="task-more";more.textContent=`+${tasks.length-3}`;btn.appendChild(more);}
         btn.addEventListener("click",()=>{selectedDate=key;calendarMonth=startOfMonth(date);renderCalendarView();}); grid.appendChild(btn);
       }
     }
 
     function renderHabits(){
-      const today=todayKey(), total=state.habits.length, completed=state.habits.filter(h=>isHabitDone(h.id,today)).length, percent=total?Math.round(completed/total*100):0;
-      $("habitProgress").style.width=`${percent}%`; $("habitProgressCaption").textContent=`${completed} из ${total}`; $("habitProgressPercent").textContent=`${percent}%`;
-      renderHabitList($("habitList"),state.habits,false); renderWeeklyHabitSummary();
+      const key=selectedHabitDate, total=state.habits.length, completed=state.habits.filter(h=>isHabitDone(h.id,key)).length, missed=state.habits.filter(h=>isHabitMissed(h.id,key)).length, percent=total?Math.round(completed/total*100):0;
+      $("habitProgress").style.width=`${percent}%`; $("habitProgressCaption").textContent=`${completed} ✓ · ${missed} ✕ · ${total-completed-missed} без отметки`; $("habitProgressPercent").textContent=`${percent}%`;
+      $("habitSelectedSubtitle").textContent=key===todayKey()?"Отметки за сегодня":`Отметки за ${formatDateTitle(key).toLocaleLowerCase("ru-RU")}`;
+      renderHabitList($("habitList"),state.habits,false,key); renderHabitCalendar(); renderWeeklyHabitSummary();
     }
 
-    function renderHabitList(container, habits, compact){
+    function renderHabitList(container, habits, compact, key=todayKey()){
       container.innerHTML=""; if(!habits.length){container.innerHTML='<div class="empty"><span class="emoji">🌱</span>Добавь первую привычку</div>';return;}
-      habits.forEach(h=>{const done=isHabitDone(h.id,todayKey());const node=document.createElement("div");node.className="habit-item";node.innerHTML=`<div class="habit-emoji"></div><div><div class="habit-title"></div><div class="habit-streak"></div></div><div style="display:flex;gap:4px"><button class="habit-toggle${done?" checked":""}">${done?"✓":"○"}</button>${compact?"":'<button class="icon-btn delete-habit" title="Удалить">🗑️</button>'}</div>`;node.querySelector(".habit-emoji").textContent=h.emoji||"✨";node.querySelector(".habit-title").textContent=h.title;node.querySelector(".habit-streak").textContent=`Серия: ${habitStreak(h.id)} ${plural(habitStreak(h.id),"день","дня","дней")}`;node.querySelector(".habit-toggle").addEventListener("click",()=>toggleHabit(h.id));if(!compact)node.querySelector(".delete-habit").addEventListener("click",()=>deleteHabit(h.id));container.appendChild(node);});
+      const future=key>todayKey();
+      habits.forEach(h=>{
+        const status=habitStatus(h.id,key), done=status==="done", missed=status==="missed";const node=document.createElement("div");node.className=`habit-item${done?" is-done":""}${missed?" is-missed":""}`;
+        node.innerHTML=`<div class="habit-emoji"></div><div><div class="habit-title"></div><div class="habit-streak"></div></div><div class="habit-actions"><button class="habit-status done${done?" active":""}" title="Выполнено" ${future?"disabled":""}>✓</button><button class="habit-status missed${missed?" active":""}" title="Не выполнено" ${future?"disabled":""}>✕</button>${compact?"":'<button class="icon-btn delete-habit" title="Удалить">🗑️</button>'}</div>`;
+        node.querySelector(".habit-emoji").textContent=h.emoji||"✨";node.querySelector(".habit-title").textContent=h.title;node.querySelector(".habit-streak").textContent=`Серия: ${habitStreak(h.id)} ${plural(habitStreak(h.id),"день","дня","дней")}`;
+        node.querySelector(".habit-status.done").addEventListener("click",()=>setHabitStatus(h.id,key,done?"none":"done"));
+        node.querySelector(".habit-status.missed").addEventListener("click",()=>setHabitStatus(h.id,key,missed?"none":"missed"));
+        if(!compact)node.querySelector(".delete-habit").addEventListener("click",()=>deleteHabit(h.id));container.appendChild(node);
+      });
     }
 
     function addHabit(e){e.preventDefault();const title=$("habitTitle").value.trim();if(!title)return;const now=new Date().toISOString(),habit={id:uid(),title,emoji:$("habitEmoji").value.trim()||"✨",createdAt:now,updatedAt:now};state.habits.push(habit);markDirty("habits",habit.id);saveState();$("habitDialog").close();renderAll();toast("Привычка добавлена 🌱");}
-    function toggleHabit(id){const key=todayKey(),logKey=`${key}|${id}`;state.habitLog[key]=state.habitLog[key]||{};state.habitLog[key][id]=!state.habitLog[key][id];if(state.habitLog[key][id])markDirty("habitLogs",logKey);else markDeleted("habitLogs",logKey);saveState();renderAll();toast(state.habitLog[key][id]?"Отмечено! ✨":"Отметка снята");}
-    function isHabitDone(id,key){return Boolean(state.habitLog[key]?.[id]);}
+    function habitStatus(id,key){const value=state.habitLog?.[key]?.[id];return value===true||value==="done"?"done":value==="missed"||value===false?"missed":"none";}
+    function isHabitDone(id,key){return habitStatus(id,key)==="done";}
+    function isHabitMissed(id,key){return habitStatus(id,key)==="missed";}
+    function setHabitStatus(id,key,status){
+      if(key>todayKey()){toast("Будущий день пока нельзя отмечать");return;}
+      state.habitLog[key]=state.habitLog[key]||{};const logKey=`${key}|${id}`;
+      if(status==="none"){delete state.habitLog[key][id];markDeleted("habitLogs",logKey);}
+      else{state.habitLog[key][id]=status;markDirty("habitLogs",logKey);if(syncMeta.deletes.habitLogs)delete syncMeta.deletes.habitLogs[logKey];}
+      saveState();renderAll();toast(status==="done"?"Отмечено выполненным ✓":status==="missed"?"Отмечено как невыполненное ✕":"Отметка снята");
+    }
     function deleteHabit(id){const h=state.habits.find(x=>x.id===id);if(!h||!confirm(`Удалить привычку «${h.title}»?`))return;markDeleted("habits",id);state.habits=state.habits.filter(x=>x.id!==id);Object.values(state.habitLog).forEach(log=>delete log[id]);saveState();renderAll();}
-    function habitStreak(id){let streak=0,d=new Date();for(let i=0;i<365;i++){if(isHabitDone(id,dateKey(d)))streak++;else if(i>0||dateKey(d)!==todayKey())break;d=addDays(d,-1);}return streak;}
-    function renderWeeklyHabitSummary(){const wrap=$("weeklyHabitSummary");wrap.innerHTML="";for(let i=6;i>=0;i--){const d=addDays(new Date(),-i),key=dateKey(d),done=state.habits.filter(h=>isHabitDone(h.id,key)).length,total=state.habits.length,p=total?Math.round(done/total*100):0;const row=document.createElement("div");row.style.cssText="display:grid;grid-template-columns:44px 1fr 38px;gap:8px;align-items:center;margin:9px 0";row.innerHTML=`<span class="subtle">${d.toLocaleDateString("ru-RU",{weekday:"short"}).replace(".","")}</span><div class="progress-line"><div class="progress-fill" style="width:${p}%"></div></div><span class="subtle" style="text-align:right">${p}%</span>`;wrap.appendChild(row);}}
+    function habitStreak(id){let streak=0,d=new Date();if(habitStatus(id,todayKey())==="none")d=addDays(d,-1);for(let i=0;i<365;i++){if(isHabitDone(id,dateKey(d)))streak++;else break;d=addDays(d,-1);}return streak;}
+    function renderHabitCalendar(){
+      const grid=$("habitCalendarGrid");grid.innerHTML="";$("habitCalendarTitle").textContent=formatMonthTitle(habitCalendarMonth);
+      ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].forEach((w,index)=>{const el=document.createElement("div");el.className=`weekday${index>4?" weekend-label":""}`;el.textContent=w;grid.appendChild(el);});
+      const first=startOfWeek(habitCalendarMonth);
+      for(let i=0;i<42;i++){
+        const date=addDays(first,i),key=dateKey(date),btn=document.createElement("button");btn.className="day";const weekend=date.getDay()===0||date.getDay()===6;
+        if(weekend)btn.classList.add("weekend");if(date.getMonth()!==habitCalendarMonth.getMonth())btn.classList.add("muted");if(key===todayKey())btn.classList.add("today");if(key===selectedHabitDate)btn.classList.add("selected");if(key>todayKey())btn.style.opacity=".38";
+        const done=state.habits.filter(h=>isHabitDone(h.id,key)).length,miss=state.habits.filter(h=>isHabitMissed(h.id,key)).length;
+        btn.innerHTML=`<span class="day-number">${date.getDate()}</span><span class="habit-day-summary">${done?`<span class="ok">${done}✓</span>`:""}${miss?`<span class="miss">${miss}✕</span>`:""}</span>`;
+        btn.addEventListener("click",()=>{if(key>todayKey()){toast("Будущий день пока нельзя отмечать");return;}selectedHabitDate=key;habitCalendarMonth=startOfMonth(date);renderHabits();});grid.appendChild(btn);
+      }
+    }
+    function renderWeeklyHabitSummary(){const wrap=$("weeklyHabitSummary");wrap.innerHTML="";for(let i=6;i>=0;i--){const d=addDays(new Date(),-i),key=dateKey(d),done=state.habits.filter(h=>isHabitDone(h.id,key)).length,miss=state.habits.filter(h=>isHabitMissed(h.id,key)).length,total=state.habits.length,p=total?Math.round(done/total*100):0;const row=document.createElement("div");row.style.cssText="display:grid;grid-template-columns:44px 1fr 64px;gap:8px;align-items:center;margin:9px 0";row.innerHTML=`<span class="subtle">${d.toLocaleDateString("ru-RU",{weekday:"short"}).replace(".","")}</span><div class="progress-line"><div class="progress-fill" style="width:${p}%"></div></div><span class="subtle" style="text-align:right">${done}✓ ${miss}✕</span>`;wrap.appendChild(row);}}
 
-    function addShoppingItem(e){e.preventDefault();const title=$("shoppingTitle").value.trim();if(!title)return;const now=new Date().toISOString(),item={id:uid(),title,qty:$("shoppingQty").value.trim(),category:$("shoppingCategory").value,done:false,createdAt:now,updatedAt:now};state.shopping.push(item);markDirty("shopping",item.id);$("shoppingTitle").value="";$("shoppingQty").value="";saveState();renderAll();toast("Добавлено в покупки");}
+    function addShoppingItem(e){e.preventDefault();const title=$("shoppingTitle").value.trim();if(!title)return;const category=$("shoppingCategory").value.trim()||"Другое";ensureCategory(category);const now=new Date().toISOString(),item={id:uid(),title,qty:$("shoppingQty").value.trim(),category,done:false,createdAt:now,updatedAt:now};state.shopping.push(item);markDirty("shopping",item.id);$("shoppingTitle").value="";$("shoppingQty").value="";saveState();renderAll();toast("Добавлено в покупки");}
     function renderShopping(){
       const groups=$("shoppingGroups");groups.innerHTML="";const left=state.shopping.filter(i=>!i.done).length;$("shoppingSummary").textContent=state.shopping.length?`${left} осталось купить`:"Список пока пуст";
       if(!state.shopping.length){groups.innerHTML='<div class="empty"><span class="emoji">🛍️</span>Добавляй сюда всё, что нужно купить</div>';return;}
-      const order=["Продукты","Дом","Красота","Здоровье","Одежда","Другое"];
-      [...new Set(state.shopping.map(i=>i.category))].sort((a,b)=>order.indexOf(a)-order.indexOf(b)).forEach(cat=>{const section=document.createElement("section");section.innerHTML=`<div class="group-title">${categoryEmoji(cat)} <span></span></div><div class="shopping-list"></div>`;section.querySelector(".group-title span").textContent=cat;const list=section.querySelector(".shopping-list");state.shopping.filter(i=>i.category===cat).sort((a,b)=>Number(a.done)-Number(b.done)).forEach(item=>{const node=document.createElement("div");node.className=`shopping-item${item.done?" done":""}`;node.innerHTML=`<button class="check${item.done?" checked":""}">${item.done?"✓":""}</button><div><div class="shopping-title"></div><div class="shopping-meta"></div></div><div class="item-actions"><button class="icon-btn delete">🗑️</button></div>`;node.querySelector(".shopping-title").textContent=item.title;node.querySelector(".shopping-meta").textContent=item.qty||"Количество не указано";node.querySelector(".check").addEventListener("click",()=>{item.done=!item.done;item.updatedAt=new Date().toISOString();markDirty("shopping",item.id);saveState();renderAll();});node.querySelector(".delete").addEventListener("click",()=>{markDeleted("shopping",item.id);state.shopping=state.shopping.filter(x=>x.id!==item.id);saveState();renderAll();});list.appendChild(node);});groups.appendChild(section);});
+      const categoryOrder=state.settings.categories.map(c=>c.name);
+      [...new Set(state.shopping.map(i=>i.category||"Другое"))].sort((a,b)=>categoryOrder.indexOf(a)-categoryOrder.indexOf(b)).forEach(cat=>{const category=categoryByName(cat);const section=document.createElement("section");section.innerHTML=`<div class="group-title"><span class="category-swatch"></span><span class="category-icon"></span><span class="category-name"></span></div><div class="shopping-list"></div>`;section.querySelector(".category-swatch").style.background=category.color;section.querySelector(".category-icon").textContent=category.emoji;section.querySelector(".category-name").textContent=cat;const list=section.querySelector(".shopping-list");state.shopping.filter(i=>(i.category||"Другое")===cat).sort((a,b)=>Number(a.done)-Number(b.done)).forEach(item=>{const node=document.createElement("div");node.className=`shopping-item${item.done?" done":""}`;node.style.borderLeft=`4px solid ${item.done?"#aaa1a6":category.color}`;node.innerHTML=`<button class="check${item.done?" checked":""}">${item.done?"✓":""}</button><div><div class="shopping-title"></div><div class="shopping-meta"></div></div><div class="item-actions"><button class="icon-btn delete">🗑️</button></div>`;node.querySelector(".shopping-title").textContent=item.title;node.querySelector(".shopping-meta").textContent=item.qty||"Количество не указано";node.querySelector(".check").addEventListener("click",()=>{item.done=!item.done;item.updatedAt=new Date().toISOString();markDirty("shopping",item.id);saveState();renderAll();});node.querySelector(".delete").addEventListener("click",()=>{markDeleted("shopping",item.id);state.shopping=state.shopping.filter(x=>x.id!==item.id);saveState();renderAll();});list.appendChild(node);});groups.appendChild(section);});
     }
     function clearBoughtItems(){const bought=state.shopping.filter(i=>i.done),n=bought.length;if(!n){toast("Купленных позиций пока нет");return;}if(!confirm(`Удалить купленные позиции (${n})?`))return;bought.forEach(item=>markDeleted("shopping",item.id));state.shopping=state.shopping.filter(i=>!i.done);saveState();renderAll();}
 
-    function renderDiary(){const key=$("diaryDate").value||todayKey();$("diaryDate").value=key;$("diaryText").value=state.diary[key]||"";$("diaryHeading").textContent=formatDateTitle(key);const mood=state.mood[key]||0;$$('.mood').forEach(b=>b.classList.toggle('active',Number(b.dataset.mood)===mood));$("diaryMoodText").textContent=mood?`Настроение: ${["","тяжёлое","не очень","спокойное","хорошее","прекрасное"][mood]}`:"Настроение не выбрано";}
-    function scheduleDiarySave(key,value,indicatorId){clearTimeout(saveTimer);$(indicatorId).textContent="сохраняю...";saveTimer=setTimeout(()=>{state.diary[key]=value;markDirty("diary",key);saveState();$(indicatorId).textContent="сохранено ✓";if(key===todayKey()&&indicatorId!=="quickDiaryState")$("quickDiary").value=value;if(key===todayKey()&&indicatorId!=="diarySaveState"&&$("diaryDate").value===key)$("diaryText").value=value;},350);}
-    function setMood(key,mood){state.mood[key]=mood;markDirty("diary",key);saveState();renderDiary();toast("Настроение сохранено");}
+    function renderDiary(force=false){
+      const key=$("diaryDate").value||todayKey();$("diaryDate").value=key;const field=$("diaryText");
+      if(force||document.activeElement!==field||field.dataset.entryDate!==key){field.value=state.diary[key]||"";field.dataset.entryDate=key;}
+      $("diaryHeading").textContent=formatDateTitle(key);const mood=state.mood[key]||0;$$('.mood').forEach(b=>b.classList.toggle('active',Number(b.dataset.mood)===mood));$("diaryMoodText").textContent=mood?`Настроение: ${["","тяжёлое","не очень","спокойное","хорошее","прекрасное"][mood]}`:"Настроение не выбрано";
+    }
+    function handleDiaryInput(key,value,indicatorId,sourceId){
+      lastDiaryInputAt=Date.now();state.diary[key]=value;markDirty("diary",key);$(indicatorId).textContent="сохраняю локально…";
+      clearTimeout(diaryLocalSaveTimer);diaryLocalSaveTimer=setTimeout(()=>{persistLocalState();persistSyncMeta();$(indicatorId).textContent="сохранено ✓";},220);
+      clearTimeout(diaryCloudSaveTimer);diaryCloudSaveTimer=setTimeout(()=>{persistLocalState();persistSyncMeta();queueCloudSync();},1300);
+      if(sourceId==="diaryText"&&key===todayKey()&&document.activeElement!==$("quickDiary"))$("quickDiary").value=value;
+      if(sourceId==="quickDiary"&&$("diaryDate").value===key&&document.activeElement!==$("diaryText"))$("diaryText").value=value;
+    }
+    function flushDiarySave(){clearTimeout(diaryLocalSaveTimer);clearTimeout(diaryCloudSaveTimer);persistLocalState();persistSyncMeta();queueCloudSync();if($("diarySaveState"))$("diarySaveState").textContent="сохранено ✓";if($("quickDiaryState"))$("quickDiaryState").textContent="сохранено ✓";}
+    function isDiaryTyping(){return Date.now()-lastDiaryInputAt<1600&&(document.activeElement===$("diaryText")||document.activeElement===$("quickDiary"));}
+    function setMood(key,mood){state.mood[key]=mood;markDirty("diary",key);saveState();renderDiary(false);toast("Настроение сохранено");}
 
     function renderBadges(){const todayActive=state.tasks.filter(t=>t.date===todayKey()&&!t.done).length,allActive=state.tasks.filter(t=>!t.done).length,habitsLeft=state.habits.filter(h=>!isHabitDone(h.id,todayKey())).length,shoppingLeft=state.shopping.filter(i=>!i.done).length;$("badgeToday").textContent=todayActive;$("badgeCalendar").textContent=allActive;$("badgeHabits").textContent=habitsLeft;$("badgeShopping").textContent=shoppingLeft;}
 
-    function applySettings(){document.documentElement.dataset.theme=state.settings.theme;document.documentElement.dataset.accent=state.settings.accent;document.documentElement.dataset.pattern=String(state.settings.pattern);document.documentElement.dataset.compact=String(state.settings.compact);$("darkToggle").checked=state.settings.theme==="dark";$("patternToggle").checked=state.settings.pattern;$("compactToggle").checked=state.settings.compact;$("defaultReminder").value=String(state.settings.defaultReminder);$$('.palette').forEach(b=>b.classList.toggle('active',b.dataset.palette===state.settings.accent));}
+    function applySettings(){document.documentElement.dataset.theme=state.settings.theme;document.documentElement.dataset.accent=state.settings.accent;document.documentElement.dataset.pattern=String(state.settings.pattern);document.documentElement.dataset.compact=String(state.settings.compact);$("darkToggle").checked=state.settings.theme==="dark";$("patternToggle").checked=state.settings.pattern;$("compactToggle").checked=state.settings.compact;$("defaultReminder").value=String(state.settings.defaultReminder);$$('.palette').forEach(b=>b.classList.toggle('active',b.dataset.palette===state.settings.accent));renderCategoryControls();}
+
+    function normalizeSettings(settings, sourceState={}){
+      const merged={...defaultState.settings,...(settings||{})};merged.categories=normalizeCategories(merged.categories,sourceState);return merged;
+    }
+    function normalizeCategories(categories,sourceState={}){
+      const map=new Map(DEFAULT_CATEGORIES.map(c=>[c.name.toLocaleLowerCase("ru-RU"),structuredClone(c)]));
+      (Array.isArray(categories)?categories:[]).forEach(c=>{const name=String(c?.name||"").trim();if(name)map.set(name.toLocaleLowerCase("ru-RU"),{name,color:validHex(c.color)?c.color:colorForName(name),emoji:String(c.emoji||"📌").trim()||"📌"});});
+      [...(sourceState.tasks||[]),...(sourceState.shopping||[])].forEach(item=>{const name=String(item?.category||"").trim();if(name&&!map.has(name.toLocaleLowerCase("ru-RU")))map.set(name.toLocaleLowerCase("ru-RU"),{name,color:colorForName(name),emoji:"📌"});});
+      return [...map.values()];
+    }
+    function normalizeHabitLog(log){const out={};Object.entries(log||{}).forEach(([date,values])=>{Object.entries(values||{}).forEach(([id,value])=>{const status=value===true||value==="done"?"done":value==="missed"?"missed":null;if(status){out[date]=out[date]||{};out[date][id]=status;}});});return out;}
+    function validHex(value){return /^#[0-9a-f]{6}$/i.test(String(value||""));}
+    function colorForName(name){let hash=0;for(const char of String(name))hash=(hash*31+char.charCodeAt(0))>>>0;const palette=["#557fd4","#62a579","#d6869d","#df7777","#b878bd","#c79342","#6c9f58","#8b76c8","#4d9ca0","#c26f52"];return palette[hash%palette.length];}
+    function categoryByName(name){const clean=String(name||"Другое").trim()||"Другое";return state.settings.categories.find(c=>c.name.toLocaleLowerCase("ru-RU")===clean.toLocaleLowerCase("ru-RU"))||{name:clean,color:colorForName(clean),emoji:"📌"};}
+    function categoryColor(name){return categoryByName(name).color;}
+    function ensureCategory(name,color=null,emoji="📌"){
+      const clean=String(name||"").trim();if(!clean)return categoryByName("Другое");const existing=state.settings.categories.find(c=>c.name.toLocaleLowerCase("ru-RU")===clean.toLocaleLowerCase("ru-RU"));if(existing)return existing;
+      const created={name:clean,color:validHex(color)?color:colorForName(clean),emoji:String(emoji||"📌").trim()||"📌"};state.settings.categories.push(created);markSettingsDirty();return created;
+    }
+    function renderCategoryControls(){
+      if(!state.settings.categories)state.settings.categories=structuredClone(DEFAULT_CATEGORIES);const options=$("categoryOptions");if(options)options.innerHTML=state.settings.categories.map(c=>`<option value="${escapeHtml(c.name)}"></option>`).join("");
+      const manager=$("categoryManager");if(manager){manager.innerHTML="";state.settings.categories.forEach(c=>{const item=document.createElement("div");item.className="category-manage-item";item.innerHTML=`<span class="category-swatch"></span><span class="cat-emoji"></span><span class="cat-name"></span><button type="button" title="Удалить категорию">✕</button>`;item.querySelector(".category-swatch").style.background=c.color;item.querySelector(".cat-emoji").textContent=c.emoji;item.querySelector(".cat-name").textContent=c.name;item.querySelector("button").addEventListener("click",()=>deleteCategory(c.name));manager.appendChild(item);});}
+      if($("shoppingCategory")&&!$("shoppingCategory").value)$("shoppingCategory").value="Дом";
+    }
+    function openCategoryDialog(targetId){categoryTargetId=targetId;$("categoryForm").reset();$("categoryEmojiInput").value="📌";$("categoryColorInput").value=colorForName(String(Date.now()));$("categoryDialog").showModal();setTimeout(()=>$("categoryNameInput").focus(),50);}
+    function saveCategory(event){event.preventDefault();const name=$("categoryNameInput").value.trim();if(!name)return;const category=ensureCategory(name,$("categoryColorInput").value,$("categoryEmojiInput").value);const existing=state.settings.categories.find(c=>c.name.toLocaleLowerCase("ru-RU")===name.toLocaleLowerCase("ru-RU"));if(existing){existing.color=$("categoryColorInput").value;existing.emoji=$("categoryEmojiInput").value.trim()||"📌";}markSettingsDirty();saveState();if(categoryTargetId&&$(categoryTargetId))$(categoryTargetId).value=category.name;$("categoryDialog").close();renderCategoryControls();toast("Категория сохранена");}
+    function deleteCategory(name){const used=state.tasks.some(t=>t.category===name)||state.shopping.some(i=>i.category===name);if(used){toast("Категория используется. Сначала перенеси записи в другую категорию.");return;}if(state.settings.categories.length<=1){toast("Нельзя удалить последнюю категорию");return;}state.settings.categories=state.settings.categories.filter(c=>c.name!==name);markSettingsDirty();saveState();renderCategoryControls();}
+    function escapeHtml(value){return String(value).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));}
+
 
 
     async function initCloud() {
@@ -1345,7 +1487,7 @@
         diary: mergeTextMap(remoteState.diary, localState.diary),
         mood: {...(remoteState.mood || {}), ...(localState.mood || {})},
         notified: {...(remoteState.notified || {}), ...(localState.notified || {})},
-        settings: {...defaultState.settings, ...(remoteState.settings || {}), ...(localState.settings || {})}
+        settings: normalizeSettings({...defaultState.settings, ...(remoteState.settings || {}), ...(localState.settings || {}),categories:[...(remoteState.settings?.categories||[]),...(localState.settings?.categories||[])]},{tasks:mergeById(remoteState.tasks, localState.tasks),shopping:mergeById(remoteState.shopping, localState.shopping)})
       };
     }
 
@@ -1371,7 +1513,7 @@
       Object.keys(syncMeta.dirty.habitLogs || {}).forEach(logKey => {
         const [date, habitId] = logKey.split("|");
         next.habitLog[date] = next.habitLog[date] || {};
-        next.habitLog[date][habitId] = Boolean(localState.habitLog?.[date]?.[habitId]);
+        next.habitLog[date][habitId] = habitStatusFromValue(localState.habitLog?.[date]?.[habitId]);
       });
       Object.keys(syncMeta.deletes.habitLogs || {}).forEach(logKey => {
         const [date, habitId] = logKey.split("|");
@@ -1385,7 +1527,7 @@
         next.diary[date] = localState.diary?.[date] || "";
         next.mood[date] = Number(localState.mood?.[date] || 0);
       });
-      next.settings = syncMeta.settingsDirty ? structuredClone(localState.settings) : {...defaultState.settings,...(next.settings||{})};
+      next.settings = syncMeta.settingsDirty ? normalizeSettings(structuredClone(localState.settings),localState) : normalizeSettings({...defaultState.settings,...(next.settings||{})},next);
       next.notified = {...(localState.notified || {})};
       return next;
     }
@@ -1430,7 +1572,7 @@
     function replaceStateFromCloud(nextState) {
       if (JSON.stringify(state) !== JSON.stringify(nextState)) saveRollingBackup("Перед обновлением из облака", true);
       suppressCloudSync = true;
-      state = nextState;
+      state = {...nextState,settings:normalizeSettings(nextState.settings,nextState),habitLog:normalizeHabitLog(nextState.habitLog)};
       persistLocalState();
       suppressCloudSync = false;
       applySettings();
@@ -1456,15 +1598,15 @@
       }));
       const habits = (habitRes.data || []).filter(h => !h.archived).map(h => ({ id:h.id, title:h.title, emoji:h.emoji || "✨", createdAt:h.created_at, updatedAt:h.updated_at }));
       const habitLog = {};
-      (logRes.data || []).forEach(row => { if (row.done) { habitLog[row.log_date] = habitLog[row.log_date] || {}; habitLog[row.log_date][row.habit_id] = true; } });
+      (logRes.data || []).forEach(row => { habitLog[row.log_date] = habitLog[row.log_date] || {}; habitLog[row.log_date][row.habit_id] = row.done ? "done" : "missed"; });
       const shopping = (shoppingRes.data || []).map(i => ({ id:i.id, title:i.title, qty:i.quantity || "", category:i.category || "Другое", done:Boolean(i.done), createdAt:i.created_at, updatedAt:i.updated_at }));
       const diary = {}, mood = {};
       (diaryRes.data || []).forEach(e => { diary[e.entry_date] = e.content || ""; mood[e.entry_date] = Number(e.mood || 0); });
-      const settings = settingsRes.data ? {
+      const settings = settingsRes.data ? normalizeSettings({
         theme:settingsRes.data.theme || "light", accent:settingsRes.data.accent || "mix",
         pattern:Boolean(settingsRes.data.pattern), compact:Boolean(settingsRes.data.compact),
-        defaultReminder:Number(settingsRes.data.default_reminder ?? 60)
-      } : structuredClone(defaultState.settings);
+        defaultReminder:Number(settingsRes.data.default_reminder ?? 60), categories:Array.isArray(settingsRes.data.categories)?settingsRes.data.categories:structuredClone(DEFAULT_CATEGORIES)
+      },{tasks,shopping}) : normalizeSettings(structuredClone(defaultState.settings),{tasks,shopping});
       const nextState = {
         tasks, habits, habitLog, shopping, diary, mood, notified:{}, settings
       };
@@ -1529,8 +1671,8 @@
         }));
         const logRows = [];
         dirtyHabitLogs.forEach(logKey => {
-          const [date, habitId] = logKey.split("|");
-          if (localSnapshot.habitLog?.[date]?.[habitId]) logRows.push({ id:`${userId}|${habitId}|${date}`, user_id:userId, habit_id:habitId, log_date:date, done:true, created_at:now });
+          const [date, habitId] = logKey.split("|");const status=habitStatusFromValue(localSnapshot.habitLog?.[date]?.[habitId]);
+          if (status!=="none") logRows.push({ id:`${userId}|${habitId}|${date}`, user_id:userId, habit_id:habitId, log_date:date, done:status==="done", created_at:now });
         });
         const diaryRows = [...dirtyDiaryDates].map(date => ({
           id:`${userId}|${date}`, user_id:userId, entry_date:date, content:localSnapshot.diary?.[date] || "",
@@ -1543,11 +1685,13 @@
         await upsertRows("shopping_items", shoppingRows);
         await upsertRows("diary_entries", diaryRows);
         if (metaSnapshot.settingsDirty) {
-          const { error } = await cloud.from("user_settings").upsert({
+          let payload={
             user_id:userId, theme:localSnapshot.settings.theme, accent:localSnapshot.settings.accent,
             pattern:Boolean(localSnapshot.settings.pattern), compact:Boolean(localSnapshot.settings.compact),
-            default_reminder:Number(localSnapshot.settings.defaultReminder), updated_at:now
-          }, { onConflict:"user_id" });
+            default_reminder:Number(localSnapshot.settings.defaultReminder), categories:localSnapshot.settings.categories, updated_at:now
+          };
+          let { error } = await cloud.from("user_settings").upsert(payload, { onConflict:"user_id" });
+          if(error&&String(error.message||"").includes("categories")){delete payload.categories;({error}=await cloud.from("user_settings").upsert(payload,{onConflict:"user_id"}));}
           if (error) throw error;
         }
         clearProcessedSyncMeta(metaSnapshot, settingsSnapshot);
@@ -1614,7 +1758,7 @@
     function queueCloudRefresh() {
       clearTimeout(cloudRefreshTimer);
       cloudRefreshTimer = setTimeout(async () => {
-        if (cloudSyncing) { queueCloudRefresh(); return; }
+        if (cloudSyncing || isDiaryTyping()) { queueCloudRefresh(); return; }
         try {
           const remote = await fetchCloudState();
           if (remote.hasData) replaceStateFromCloud(mergeRemoteWithDirty(remote.state, state));
@@ -1851,7 +1995,9 @@
       return holidays2026[key] || "";
     }
 
-    function categoryEmoji(cat){return ({"Продукты":"🥑","Дом":"🏠","Красота":"💄","Здоровье":"💊","Одежда":"👗","Другое":"📦"})[cat]||"📦";}
+    function habitStatusFromValue(value){return value===true||value==="done"?"done":value===false||value==="missed"?"missed":"none";}
+    function formatMonthTitle(date){const text=date.toLocaleDateString("ru-RU",{month:"long",year:"numeric"});return text.replace(/(\d{4})\s*г?\.?$/,"$1 г.");}
+    function categoryEmoji(cat){return categoryByName(cat).emoji;}
   })();
   </script>
 </body>
