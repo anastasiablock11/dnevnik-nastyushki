@@ -366,29 +366,88 @@
     .wellness-mini { border:1px solid var(--line); border-radius:14px; padding:12px; background:color-mix(in srgb,var(--lilac) 6%,var(--surface-solid)); }
     .wellness-mini span { display:block; color:var(--muted); font-size:11px; margin-bottom:4px; }
     .wellness-mini strong { font-size:19px; }
+
+    /* Вес и цикл — отдельный спокойный интерфейс в духе трекера цикла */
+    .wellness-shell { width:min(900px,100%); margin:0 auto; }
+    .wellness-app { border:1px solid color-mix(in srgb,var(--line) 85%,transparent); border-radius:30px; background:var(--surface); box-shadow:var(--shadow); overflow:hidden; backdrop-filter:blur(16px); }
+    .wellness-appbar { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:14px; padding:18px 20px 12px; }
+    .wellness-appbar h3 { margin:0; font-size:22px; letter-spacing:-.02em; }
+    .wellness-appbar .wellness-settings-btn { justify-self:end; width:44px; height:44px; border-radius:50%; font-size:20px; }
+    .wellness-tabs, .cycle-mode-switch { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:3px; padding:4px; border-radius:999px; background:color-mix(in srgb,var(--muted) 13%,var(--surface-soft)); }
+    .wellness-tabs { width:min(300px,100%); margin:0 auto 12px; }
+    .wellness-tab, .cycle-mode-btn { border:0; border-radius:999px; background:transparent; color:var(--muted); padding:9px 18px; font-weight:750; box-shadow:none; }
+    .wellness-tab.active, .cycle-mode-btn.active { background:var(--surface-solid); color:var(--text); box-shadow:0 4px 14px rgba(70,45,58,.09); }
+    .wellness-pane { padding:0 20px 24px; }
+    .cycle-forecast-modern { text-align:center; padding:13px 10px 16px; }
+    .cycle-forecast-modern .cycle-kicker { color:var(--muted); font-size:12px; font-weight:750; text-transform:uppercase; letter-spacing:.08em; }
+    .cycle-forecast-modern .cycle-big { display:block; margin:5px 0 2px; font-size:clamp(26px,5vw,39px); line-height:1.05; color:var(--rose-deep); letter-spacing:-.04em; }
+    .cycle-forecast-modern .cycle-caption { display:block; color:var(--muted); font-size:13px; line-height:1.5; }
+    .cycle-summary-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:0 0 16px; }
+    .cycle-summary-stat { border:1px solid var(--line); border-radius:15px; background:color-mix(in srgb,var(--surface-soft) 68%,var(--surface-solid)); padding:10px 8px; text-align:center; }
+    .cycle-summary-stat span { display:block; font-size:10px; color:var(--muted); margin-bottom:3px; }
+    .cycle-summary-stat strong { font-size:14px; }
+    .cycle-calendar-card { border-top:1px solid var(--line); padding-top:16px; }
+    .cycle-calendar-head { display:grid; grid-template-columns:42px 1fr 42px; align-items:center; gap:8px; margin-bottom:8px; }
+    .cycle-calendar-head .calendar-title { text-align:center; font-size:21px; }
+    .cycle-mode-switch { width:205px; margin:0 auto 18px; }
+    .cycle-mode-btn { padding:8px 12px; font-size:13px; }
+    .cycle-calendar-modern { gap:4px; }
+    .cycle-calendar-modern .weekday { font-size:10px; padding:5px 0 9px; text-transform:uppercase; }
+    .cycle-calendar-modern .day { min-height:0; aspect-ratio:1; border:0; border-radius:50%; padding:0; display:grid; place-items:center; text-align:center; background:transparent; box-shadow:none; }
+    .cycle-calendar-modern .day .day-number { display:grid; place-items:center; width:100%; height:100%; border-radius:50%; font-weight:700; font-size:14px; }
+    .cycle-calendar-modern .day.outside-month { visibility:hidden; }
+    .cycle-calendar-modern .day.today:not(.actual):not(.predicted) .day-number { background:color-mix(in srgb,var(--muted) 18%,var(--surface-solid)); color:var(--text); }
+    .cycle-calendar-modern .day.today::before { content:"сегодня"; position:absolute; top:-10px; left:50%; transform:translateX(-50%); white-space:nowrap; font-size:7px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+    .cycle-calendar-modern .day.actual .day-number { background:var(--rose-deep); color:#fff; }
+    .cycle-calendar-modern .day.predicted .day-number { color:var(--rose-deep); border:2px dotted color-mix(in srgb,var(--rose-deep) 80%,transparent); }
+    .cycle-calendar-modern .day.fertile .day-number { color:#2d9f9a; font-weight:800; }
+    .cycle-calendar-modern .day.ovulation .day-number { color:#258f8a; border:2px dotted #3bb2ac; }
+    .cycle-calendar-modern .day.actual.ovulation .day-number { border:0; color:#fff; }
+    .cycle-calendar-modern .day.actual.predicted .day-number { border:0; }
+    .cycle-calendar-modern .day.predicted-start::after { content:""; }
+    .cycle-legend-modern { display:flex; justify-content:center; flex-wrap:wrap; gap:8px 14px; margin:14px 0 4px; color:var(--muted); font-size:10px; }
+    .cycle-legend-modern span { display:inline-flex; align-items:center; gap:6px; }
+    .cycle-legend-modern i { width:12px; height:12px; border-radius:50%; display:inline-block; font-style:normal; }
+    .cycle-legend-modern .actual-dot { background:var(--rose-deep); }
+    .cycle-legend-modern .predicted-dot { border:2px dotted var(--rose-deep); }
+    .cycle-legend-modern .fertile-dot { background:#43b6b0; }
+    .cycle-legend-modern .ovulation-dot { border:2px dotted #43b6b0; }
+    .cycle-primary-actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:17px; }
+    .cycle-primary-actions .btn { min-height:45px; }
+    .cycle-primary-actions .period-main { background:linear-gradient(145deg,#d95f88,var(--rose-deep)); }
+    .cycle-editor-panel, .cycle-settings-panel { margin-top:14px; padding:14px; border:1px solid var(--line); border-radius:18px; background:color-mix(in srgb,var(--surface-soft) 50%,var(--surface-solid)); }
+    .cycle-panel-title { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+    .cycle-panel-title strong { font-size:14px; }
+    .cycle-settings { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:8px; }
+    .cycle-history { display:grid; gap:7px; margin-top:12px; }
+    .cycle-year-view { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+    .cycle-year-month { border:1px solid var(--line); border-radius:16px; padding:10px; background:var(--surface-solid); cursor:pointer; }
+    .cycle-year-month:hover { border-color:color-mix(in srgb,var(--rose-deep) 35%,var(--line)); }
+    .cycle-year-month-title { text-align:center; font-size:12px; font-weight:800; margin-bottom:7px; }
+    .cycle-year-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+    .cycle-year-day { aspect-ratio:1; display:grid; place-items:center; border-radius:50%; font-size:8px; color:var(--muted); }
+    .cycle-year-day.actual { background:var(--rose-deep); color:white; }
+    .cycle-year-day.predicted { color:var(--rose-deep); outline:1px dotted var(--rose-deep); }
+    .cycle-year-day.fertile { color:#2d9f9a; font-weight:800; }
+    .cycle-year-day.ovulation { outline:1px dotted #43b6b0; color:#258f8a; }
+    .cycle-year-day.today { background:color-mix(in srgb,var(--muted) 18%,var(--surface-solid)); color:var(--text); }
+
+    .weight-pane-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-end; flex-wrap:wrap; margin-bottom:12px; }
+    .weight-pane-head h4 { margin:0; font-size:20px; }
     .wellness-form { display:grid; grid-template-columns:150px minmax(110px,1fr) auto; gap:9px; align-items:end; }
-    .weight-chart-wrap { margin-top:16px; border:1px solid var(--line); border-radius:16px; padding:10px; background:var(--surface-solid); }
-    .weight-chart { width:100%; height:230px; display:block; }
+    .weight-chart-wrap { margin-top:16px; border:1px solid var(--line); border-radius:18px; padding:10px; background:var(--surface-solid); }
+    .weight-chart { width:100%; height:250px; display:block; }
     .wellness-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; margin-top:12px; }
-    .wellness-stat { padding:10px 12px; border:1px solid var(--line); border-radius:13px; background:var(--surface-soft); }
+    .wellness-stat { padding:11px 12px; border:1px solid var(--line); border-radius:15px; background:var(--surface-soft); }
     .wellness-stat span { display:block; color:var(--muted); font-size:10px; }
-    .wellness-stat strong { display:block; margin-top:3px; font-size:16px; }
-    .weight-history, .cycle-history { display:grid; gap:7px; margin-top:12px; }
+    .wellness-stat strong { display:block; margin-top:3px; font-size:17px; }
+    .weight-history { display:grid; gap:7px; margin-top:12px; }
     .history-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 10px; border:1px solid var(--line); border-radius:12px; background:var(--surface-solid); }
     .history-row .history-main { min-width:0; }
     .history-row strong { font-size:13px; }
     .history-row span { color:var(--muted); font-size:11px; }
-    .cycle-forecast { padding:16px; border-radius:16px; border:1px solid color-mix(in srgb,var(--rose) 34%,var(--line)); background:color-mix(in srgb,var(--rose) 8%,var(--surface-solid)); margin-bottom:14px; }
-    .cycle-forecast strong { display:block; font-size:21px; margin-bottom:5px; }
-    .cycle-forecast span { color:var(--muted); font-size:12px; line-height:1.5; }
-    .cycle-settings { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:12px; }
-    .cycle-day.actual { background:color-mix(in srgb,var(--rose) 30%,var(--surface-solid)); border-color:color-mix(in srgb,var(--rose-deep) 46%,var(--line)); }
-    .cycle-day.predicted { box-shadow:inset 0 -5px 0 color-mix(in srgb,var(--lilac) 78%,transparent); }
-    .cycle-day.predicted-start::after { content:"✦"; position:absolute; right:6px; top:5px; font-size:9px; color:var(--lilac-deep); }
-    .cycle-legend { display:flex; flex-wrap:wrap; gap:12px; margin-top:10px; color:var(--muted); font-size:11px; }
-    .cycle-legend span::before { content:""; display:inline-block; width:10px; height:10px; border-radius:4px; margin-right:5px; vertical-align:-1px; border:1px solid var(--line); }
-    .cycle-legend .actual-key::before { background:color-mix(in srgb,var(--rose) 35%,var(--surface-solid)); }
-    .cycle-legend .predicted-key::before { background:color-mix(in srgb,var(--lilac) 45%,var(--surface-solid)); }
+    .cycle-disclaimer { margin-top:12px; padding:10px 12px; border-radius:14px; background:color-mix(in srgb,#43b6b0 7%,var(--surface-solid)); color:var(--muted); font-size:10px; line-height:1.45; text-align:center; }
+
     .mobile-nav { display:none; }
     .toast-wrap { position:fixed; right:18px; bottom:18px; z-index:100; display:grid; gap:8px; }
     .toast { max-width:340px; padding:12px 14px; border-radius:13px; color:#fff; background:#3c2e35; box-shadow:var(--shadow); animation:toastIn .2s ease; }
@@ -430,6 +489,17 @@
       .wellness-form { grid-template-columns:1fr 1fr; }
       .wellness-form .btn { grid-column:1/-1; }
       .wellness-stats { grid-template-columns:1fr; }
+      .wellness-app { border-radius:22px; }
+      .wellness-appbar { grid-template-columns:1fr auto; padding:15px 14px 8px; }
+      .wellness-appbar h3 { font-size:19px; }
+      .wellness-appbar .wellness-tabs { grid-column:1/-1; grid-row:2; width:100%; margin:5px 0 0; }
+      .wellness-pane { padding:0 14px 18px; }
+      .cycle-summary-stats { grid-template-columns:repeat(3,minmax(0,1fr)); gap:5px; }
+      .cycle-summary-stat { padding:8px 4px; }
+      .cycle-summary-stat strong { font-size:12px; }
+      .cycle-year-view { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .cycle-settings { grid-template-columns:1fr; }
+      .cycle-primary-actions { grid-template-columns:1fr; }
       .date-picker-card { padding:15px; }
       .form-grid { grid-template-columns:1fr; }
       .field.full { grid-column:auto; }
@@ -441,6 +511,14 @@
     }
 
     @media (max-width: 430px) {
+      body.wellness-active .topbar { display:none; }
+      body.wellness-active main { padding-top:8px; }
+      .wellness-shell { width:calc(100% + 6px); margin-left:-3px; }
+      .wellness-app { border-radius:20px; }
+      .cycle-calendar-modern { gap:2px; }
+      .cycle-calendar-modern .day .day-number { font-size:13px; }
+      .cycle-year-view { grid-template-columns:1fr 1fr; gap:7px; }
+      .cycle-year-month { padding:7px; }
       .topbar h2 { font-size:31px; }
       .topbar .date-line { font-size:13px; }
       .stat strong { font-size:24px; }
@@ -638,10 +716,78 @@
       </section>
 
       <section class="view" data-view-panel="wellness">
-        <div class="grid two">
-          <section class="card">
-            <div class="card-head"><div><h3>Вес</h3><span class="subtle">Добавляй значение каждый день — график построится сам</span></div></div>
-            <div class="card-body">
+        <div class="wellness-shell">
+          <section class="wellness-app">
+            <div class="wellness-appbar">
+              <h3>Вес и цикл</h3>
+              <div class="wellness-tabs" role="tablist" aria-label="Вес и цикл">
+                <button class="wellness-tab active" id="wellnessTabCycle" type="button">Цикл</button>
+                <button class="wellness-tab" id="wellnessTabWeight" type="button">Вес</button>
+              </div>
+              <button class="btn icon ghost wellness-settings-btn" id="cycleSettingsToggle" type="button" title="Настройки цикла">⚙️</button>
+            </div>
+
+            <div class="wellness-pane" id="wellnessCyclePane">
+              <div class="cycle-forecast-modern" id="cycleForecast">
+                <span class="cycle-kicker">Следующие месячные</span>
+                <strong class="cycle-big">Добавь первый цикл</strong>
+                <span class="cycle-caption">После этого появится ориентировочный прогноз.</span>
+              </div>
+              <div class="cycle-summary-stats" id="cycleSummaryStats"></div>
+
+              <div class="cycle-calendar-card">
+                <div class="cycle-mode-switch">
+                  <button class="cycle-mode-btn active" id="cycleModeMonth" type="button">Месяц</button>
+                  <button class="cycle-mode-btn" id="cycleModeYear" type="button">Год</button>
+                </div>
+                <div class="cycle-calendar-head">
+                  <button class="btn icon ghost" id="cyclePrevMonth" type="button" aria-label="Назад">‹</button>
+                  <div class="calendar-title" id="cycleCalendarTitle"></div>
+                  <button class="btn icon ghost" id="cycleNextMonth" type="button" aria-label="Вперёд">›</button>
+                </div>
+                <div id="cycleMonthView">
+                  <div class="calendar cycle-calendar-modern" id="cycleCalendarGrid"></div>
+                </div>
+                <div class="cycle-year-view" id="cycleYearView" hidden></div>
+                <div class="cycle-legend-modern">
+                  <span><i class="actual-dot"></i>Месячные</span>
+                  <span><i class="predicted-dot"></i>Прогноз</span>
+                  <span><i class="fertile-dot"></i>Фертильные дни</span>
+                  <span><i class="ovulation-dot"></i>Овуляция</span>
+                </div>
+                <div class="cycle-primary-actions">
+                  <button class="btn primary period-main" id="cycleMarkToday" type="button">🌸 Отметить начало сегодня</button>
+                  <button class="btn soft" id="cycleEditDates" type="button">Изменить даты месячных</button>
+                </div>
+                <div class="cycle-disclaimer">Прогноз цикла, фертильных дней и овуляции ориентировочный и не подходит как метод контрацепции.</div>
+              </div>
+
+              <div class="cycle-editor-panel" id="cycleEditorPanel" hidden>
+                <div class="cycle-panel-title"><strong>Даты месячных</strong><button class="btn small ghost" id="cycleEditorClose" type="button">Закрыть</button></div>
+                <form id="cycleForm">
+                  <div class="form-grid">
+                    <div class="field"><label for="cycleStart">Начало месячных</label><input type="date" id="cycleStart" required></div>
+                    <div class="field"><label for="cycleEnd">Последний день (необязательно)</label><input type="date" id="cycleEnd"></div>
+                  </div>
+                  <div class="modal-actions" style="margin-top:12px"><button class="btn primary" type="submit">Сохранить даты</button></div>
+                </form>
+                <div class="cycle-history" id="cycleHistory"></div>
+              </div>
+
+              <div class="cycle-settings-panel" id="cycleSettingsPanel" hidden>
+                <div class="cycle-panel-title"><strong>Настройки цикла</strong><button class="btn small ghost" id="cycleSettingsClose" type="button">Закрыть</button></div>
+                <div class="cycle-settings">
+                  <div class="field"><label for="cycleTypicalLength">Обычная длина цикла</label><input type="number" id="cycleTypicalLength" min="15" max="60" step="1"></div>
+                  <div class="field"><label for="cycleTypicalPeriod">Длительность месячных</label><input type="number" id="cycleTypicalPeriod" min="1" max="14" step="1"></div>
+                  <div class="field"><label for="cycleReminderDays">Напомнить заранее, дней</label><input type="number" id="cycleReminderDays" min="0" max="7" step="1"></div>
+                  <div class="field"><label for="cycleReminderTime">Время напоминания</label><input type="time" id="cycleReminderTime"></div>
+                </div>
+                <label class="setting-row" style="margin-top:10px"><div class="setting-copy"><strong>Напоминание о приближении месячных</strong><span>Использует те же push-уведомления, что и обычные дела</span></div><span class="switch"><input type="checkbox" id="cycleReminderEnabled"><span></span></span></label>
+              </div>
+            </div>
+
+            <div class="wellness-pane" id="wellnessWeightPane" hidden>
+              <div class="weight-pane-head"><div><h4>Вес</h4><span class="subtle">Записывай значение — график обновится сам</span></div></div>
               <form class="wellness-form" id="weightForm">
                 <div class="field"><label for="weightDate">Дата</label><input type="date" id="weightDate" required></div>
                 <div class="field"><label for="weightValue">Вес, кг</label><input type="number" id="weightValue" step="0.05" min="1" max="500" inputmode="decimal" placeholder="Например: 56.3" required></div>
@@ -652,37 +798,6 @@
               <div class="weight-history" id="weightHistory"></div>
             </div>
           </section>
-          <div class="stack">
-            <section class="card">
-              <div class="card-head"><div><h3>Календарь цикла</h3><span class="subtle">Прогноз считается по твоим предыдущим циклам</span></div></div>
-              <div class="card-body">
-                <div class="cycle-forecast" id="cycleForecast"><strong>Добавь первый цикл</strong><span>После этого появится ориентировочный прогноз.</span></div>
-                <form id="cycleForm">
-                  <div class="form-grid">
-                    <div class="field"><label for="cycleStart">Начало месячных</label><input type="date" id="cycleStart" required></div>
-                    <div class="field"><label for="cycleEnd">Последний день (необязательно)</label><input type="date" id="cycleEnd"></div>
-                  </div>
-                  <div class="modal-actions" style="margin-top:12px"><button class="btn primary" type="submit">Сохранить цикл</button></div>
-                </form>
-                <div class="cycle-settings">
-                  <div class="field"><label for="cycleTypicalLength">Обычная длина цикла</label><input type="number" id="cycleTypicalLength" min="15" max="60" step="1"></div>
-                  <div class="field"><label for="cycleTypicalPeriod">Обычная длительность месячных</label><input type="number" id="cycleTypicalPeriod" min="1" max="14" step="1"></div>
-                  <div class="field"><label for="cycleReminderDays">Напомнить заранее, дней</label><input type="number" id="cycleReminderDays" min="0" max="7" step="1"></div>
-                  <div class="field"><label for="cycleReminderTime">Время напоминания</label><input type="time" id="cycleReminderTime"></div>
-                </div>
-                <label class="setting-row" style="margin-top:10px"><div class="setting-copy"><strong>Напоминание о приближении месячных</strong><span>Использует те же push-уведомления, что и обычные дела</span></div><span class="switch"><input type="checkbox" id="cycleReminderEnabled"><span></span></span></label>
-                <div class="cycle-history" id="cycleHistory"></div>
-              </div>
-            </section>
-            <section class="card">
-              <div class="card-head"><div><h3>Прогноз по месяцам</h3><span class="subtle">Розовое — записанные дни, сиреневое — прогноз</span></div></div>
-              <div class="card-body">
-                <div class="calendar-toolbar"><button class="btn icon" id="cyclePrevMonth">‹</button><div class="calendar-title" id="cycleCalendarTitle"></div><button class="btn icon" id="cycleNextMonth">›</button></div>
-                <div class="calendar" id="cycleCalendarGrid"></div>
-                <div class="cycle-legend"><span class="actual-key">Записано</span><span class="predicted-key">Прогноз</span></div>
-              </div>
-            </section>
-          </div>
         </div>
       </section>
 
@@ -717,7 +832,7 @@
             <div class="subtle" style="margin-top:12px;line-height:1.5">Резервную копию можно скачать в любой момент. При выполненном входе основная копия данных хранится в защищённом облаке и синхронизируется между устройствами.</div>
           </div></section>
 
-          <section class="card"><div class="card-head"><h3>О сайте</h3></div><div class="card-body"><div class="subtle" style="line-height:1.7"><strong style="color:var(--text)">Дневник Настюшки</strong><br>Версия 1.0 — задачи без даты, график веса, календарь цикла и улучшенный календарь.<br><br>Записи защищены входом и правилами доступа Supabase.</div></div></section>
+          <section class="card"><div class="card-head"><h3>О сайте</h3></div><div class="card-body"><div class="subtle" style="line-height:1.7"><strong style="color:var(--text)">Дневник Настюшки</strong><br>Версия 1.1 — новый наглядный экран цикла, годовой обзор и график веса.<br><br>Записи защищены входом и правилами доступа Supabase.</div></div></section>
         </div>
       </section>
     </main>
@@ -872,6 +987,8 @@
     let selectedHabitDate = todayKey();
     let habitCalendarMonth = startOfMonth(new Date());
     let cycleCalendarMonth = startOfMonth(new Date());
+    let cycleCalendarMode = "month";
+    let wellnessTab = "cycle";
     let categoryTargetId = null;
     let diaryLocalSaveTimer = null;
     let diaryCloudSaveTimer = null;
@@ -1066,8 +1183,17 @@
       $("nextMonth").addEventListener("click", () => { calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth()+1, 1); renderCalendar(); });
       $("habitPrevMonth").addEventListener("click", () => { habitCalendarMonth = new Date(habitCalendarMonth.getFullYear(), habitCalendarMonth.getMonth()-1, 1); renderHabitCalendar(); });
       $("habitNextMonth").addEventListener("click", () => { habitCalendarMonth = new Date(habitCalendarMonth.getFullYear(), habitCalendarMonth.getMonth()+1, 1); renderHabitCalendar(); });
-      $("cyclePrevMonth").addEventListener("click", () => { cycleCalendarMonth = new Date(cycleCalendarMonth.getFullYear(), cycleCalendarMonth.getMonth()-1, 1); renderCycleCalendar(); });
-      $("cycleNextMonth").addEventListener("click", () => { cycleCalendarMonth = new Date(cycleCalendarMonth.getFullYear(), cycleCalendarMonth.getMonth()+1, 1); renderCycleCalendar(); });
+      $("cyclePrevMonth").addEventListener("click", () => shiftCycleCalendar(-1));
+      $("cycleNextMonth").addEventListener("click", () => shiftCycleCalendar(1));
+      $("wellnessTabCycle").addEventListener("click", () => setWellnessTab("cycle"));
+      $("wellnessTabWeight").addEventListener("click", () => setWellnessTab("weight"));
+      $("cycleModeMonth").addEventListener("click", () => setCycleCalendarMode("month"));
+      $("cycleModeYear").addEventListener("click", () => setCycleCalendarMode("year"));
+      $("cycleEditDates").addEventListener("click", () => toggleCyclePanel("editor", true));
+      $("cycleEditorClose").addEventListener("click", () => toggleCyclePanel("editor", false));
+      $("cycleSettingsToggle").addEventListener("click", () => toggleCyclePanel("settings"));
+      $("cycleSettingsClose").addEventListener("click", () => toggleCyclePanel("settings", false));
+      $("cycleMarkToday").addEventListener("click", markCycleStartToday);
 
       $("somedayForm").addEventListener("submit", addSomedayTask);
       $("weightForm").addEventListener("submit", saveWeightEntry);
@@ -1117,6 +1243,7 @@
 
     function switchView(view) {
       activeView = view;
+      document.body.classList.toggle("wellness-active", view === "wellness");
       $$('[data-view-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.viewPanel === view));
       $$('[data-view]').forEach(btn => btn.classList.toggle('active', btn.dataset.view === view));
       updateHeader();
@@ -1426,9 +1553,158 @@
     function syncCycleReminderTask(save=true){const w=wellnessState(),stats=cycleStats(),id=w.cycleReminderTaskId,existing=id?state.tasks.find(t=>t.id===id):null;if(!w.cycleReminderEnabled||!stats.predictedKey){if(existing){markDeleted("tasks",existing.id);state.tasks=state.tasks.filter(t=>t.id!==existing.id);}w.cycleReminderTaskId="";markSettingsDirty();if(save)saveState();return;}const now=new Date().toISOString(),payload={title:`🌸 ${cycleReminderPhrase(w.cycleReminderDays)}`,date:stats.predictedKey,time:w.cycleReminderTime||"09:00",priority:"low",category:"Здоровье",reminder:Number(w.cycleReminderDays)*1440,note:`Ориентировочная дата начала: ${formatDateTitle(stats.predictedKey)}. Прогноз может сдвигаться.`,done:false,updatedAt:now};if(existing){Object.assign(existing,payload);markDirty("tasks",existing.id);}else{const task=newTask(payload);state.tasks.push(task);w.cycleReminderTaskId=task.id;markDirty("tasks",task.id);markSettingsDirty();}if(save)saveState();}
     function isCycleReminderTask(task){return Boolean(task&&wellnessState().cycleReminderTaskId&&task.id===wellnessState().cycleReminderTaskId);}
     function renderWellnessQuick(){if(!$("quickWeight"))return;const w=wellnessState(),entries=[...w.weightEntries].sort((a,b)=>a.date.localeCompare(b.date)),latest=entries.at(-1),stats=cycleStats();$("quickWeight").textContent=latest?`${formatWeight(latest.weight)} кг`:"—";$("quickCycle").textContent=stats.predictedKey?(stats.daysUntil===0?"Сегодня":stats.daysUntil===1?"Завтра":`${stats.daysUntil} дн.`):"—";}
-    function renderWellness(){if(!$("weightChart"))return;const w=wellnessState();$("weightDate").value=$("weightDate").value||todayKey();$("cycleStart").value=$("cycleStart").value||todayKey();$("cycleTypicalLength").value=w.typicalCycleLength;$("cycleTypicalPeriod").value=w.typicalPeriodLength;$("cycleReminderDays").value=w.cycleReminderDays;$("cycleReminderTime").value=w.cycleReminderTime;$("cycleReminderEnabled").checked=w.cycleReminderEnabled;renderWeight();renderCycle();renderCycleCalendar();renderWellnessQuick();}
-    function renderCycle(){const w=wellnessState(),stats=cycleStats(),forecast=$("cycleForecast");if(!stats.last){forecast.innerHTML='<strong>Добавь первый цикл</strong><span>Запиши дату начала месячных. Пока данных мало, прогноз будет опираться на указанную обычную длину цикла.</span>';}else{const when=stats.daysUntil===0?"сегодня":stats.daysUntil===1?"завтра":stats.daysUntil>1?`примерно через ${stats.daysUntil} ${plural(stats.daysUntil,"день","дня","дней")}`:"примерно сейчас";forecast.innerHTML=`<strong>${escapeHtml(formatDateTitle(stats.predictedKey))}</strong><span>Следующее начало ожидается ${escapeHtml(when)}. Средняя длина цикла сейчас: ${stats.cycleLength} ${plural(stats.cycleLength,"день","дня","дней")}. Это ориентировочный прогноз, он может сдвигаться.</span>`;}const history=$("cycleHistory");history.innerHTML="";stats.cycles.slice(-6).reverse().forEach(c=>{const row=document.createElement("div");row.className="history-row";const duration=c.end?`${daysBetween(c.start,c.end)+1} ${plural(daysBetween(c.start,c.end)+1,"день","дня","дней")}`:"конец не указан";row.innerHTML=`<div class="history-main"><strong>${escapeHtml(formatDateTitle(c.start))}</strong><br><span>${escapeHtml(duration)}</span></div><button class="icon-btn" title="Удалить">🗑️</button>`;row.querySelector("button").addEventListener("click",()=>deleteCycleEntry(c.id));history.appendChild(row);});}
-    function renderCycleCalendar(){const grid=$("cycleCalendarGrid");if(!grid)return;grid.innerHTML="";$("cycleCalendarTitle").textContent=formatMonthTitle(cycleCalendarMonth);["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].forEach(d=>{const x=document.createElement("div");x.className="weekday";x.textContent=d;grid.appendChild(x);});const stats=cycleStats(),actual=new Set();stats.cycles.forEach(c=>{const end=c.end||c.start;for(let d=parseDate(c.start),last=parseDate(end);d<=last;d=addDays(d,1))actual.add(dateKey(d));});const predicted=new Set();if(stats.predictedStart){for(let i=0;i<stats.periodLength;i++)predicted.add(dateKey(addDays(stats.predictedStart,i)));}const first=startOfWeek(cycleCalendarMonth);for(let i=0;i<42;i++){const date=addDays(first,i),key=dateKey(date),btn=document.createElement("div");btn.className="day cycle-day";if(date.getMonth()!==cycleCalendarMonth.getMonth())btn.classList.add("muted");if(key===todayKey())btn.classList.add("today");if(actual.has(key))btn.classList.add("actual");else if(predicted.has(key))btn.classList.add("predicted");if(key===stats.predictedKey)btn.classList.add("predicted-start");btn.innerHTML=`<span class="day-number">${date.getDate()}</span>`;grid.appendChild(btn);}}
+    function renderWellness(){if(!$("weightChart"))return;const w=wellnessState();$("weightDate").value=$("weightDate").value||todayKey();$("cycleStart").value=$("cycleStart").value||todayKey();$("cycleTypicalLength").value=w.typicalCycleLength;$("cycleTypicalPeriod").value=w.typicalPeriodLength;$("cycleReminderDays").value=w.cycleReminderDays;$("cycleReminderTime").value=w.cycleReminderTime;$("cycleReminderEnabled").checked=w.cycleReminderEnabled;renderWeight();renderCycle();setWellnessTab(wellnessTab);setCycleCalendarMode(cycleCalendarMode);renderWellnessQuick();}
+    function setWellnessTab(tab){
+      wellnessTab=tab==="weight"?"weight":"cycle";
+      $("wellnessCyclePane").hidden=wellnessTab!=="cycle";
+      $("wellnessWeightPane").hidden=wellnessTab!=="weight";
+      $("wellnessTabCycle").classList.toggle("active",wellnessTab==="cycle");
+      $("wellnessTabWeight").classList.toggle("active",wellnessTab==="weight");
+      $("cycleSettingsToggle").style.visibility=wellnessTab==="cycle"?"visible":"hidden";
+      if(wellnessTab==="weight") setTimeout(renderWeightChart,0);
+    }
+
+    function setCycleCalendarMode(mode){
+      cycleCalendarMode=mode==="year"?"year":"month";
+      $("cycleModeMonth").classList.toggle("active",cycleCalendarMode==="month");
+      $("cycleModeYear").classList.toggle("active",cycleCalendarMode==="year");
+      $("cycleMonthView").hidden=cycleCalendarMode!=="month";
+      $("cycleYearView").hidden=cycleCalendarMode!=="year";
+      renderCycleCalendar();
+    }
+
+    function shiftCycleCalendar(direction){
+      cycleCalendarMonth=cycleCalendarMode==="year"
+        ? new Date(cycleCalendarMonth.getFullYear()+direction,cycleCalendarMonth.getMonth(),1)
+        : new Date(cycleCalendarMonth.getFullYear(),cycleCalendarMonth.getMonth()+direction,1);
+      renderCycleCalendar();
+    }
+
+    function toggleCyclePanel(panel,force){
+      const editor=$("cycleEditorPanel"),settings=$("cycleSettingsPanel");
+      const target=panel==="settings"?settings:editor;
+      const other=panel==="settings"?editor:settings;
+      const next=typeof force==="boolean"?force:target.hidden;
+      target.hidden=!next;
+      if(next) other.hidden=true;
+      if(next) setTimeout(()=>target.scrollIntoView({behavior:"smooth",block:"nearest"}),30);
+    }
+
+    function markCycleStartToday(){
+      $("cycleStart").value=todayKey();
+      $("cycleEnd").value="";
+      toggleCyclePanel("editor",true);
+      setTimeout(()=>$("cycleEnd").focus(),250);
+    }
+
+    function cyclePredictionStarts(rangeStart,rangeEnd){
+      const stats=cycleStats();
+      if(!stats.last||!stats.cycleLength)return[];
+      const starts=[];
+      let cursor=addDays(parseDate(stats.last.start),stats.cycleLength);
+      const until=addDays(rangeEnd,stats.cycleLength+20);
+      let guard=0;
+      while(cursor<=until&&guard<40){
+        if(cursor>=addDays(rangeStart,-stats.cycleLength-20))starts.push(new Date(cursor));
+        cursor=addDays(cursor,stats.cycleLength);guard++;
+      }
+      return starts;
+    }
+
+    function cycleMarkSets(rangeStart,rangeEnd){
+      const stats=cycleStats(),actual=new Set(),predicted=new Set(),fertile=new Set(),ovulation=new Set();
+      stats.cycles.forEach(c=>{
+        const end=c.end||c.start;
+        for(let d=parseDate(c.start),last=parseDate(end);d<=last;d=addDays(d,1)){
+          if(d>=rangeStart&&d<=rangeEnd)actual.add(dateKey(d));
+        }
+      });
+      cyclePredictionStarts(rangeStart,rangeEnd).forEach(start=>{
+        for(let i=0;i<stats.periodLength;i++){
+          const d=addDays(start,i); if(d>=rangeStart&&d<=rangeEnd)predicted.add(dateKey(d));
+        }
+        const ovu=addDays(start,-14); const ovuKey=dateKey(ovu);
+        if(ovu>=rangeStart&&ovu<=rangeEnd)ovulation.add(ovuKey);
+        for(let i=-5;i<=1;i++){
+          const d=addDays(ovu,i); if(d>=rangeStart&&d<=rangeEnd)fertile.add(dateKey(d));
+        }
+      });
+      return{actual,predicted,fertile,ovulation};
+    }
+
+    function renderCycle(){
+      const w=wellnessState(),stats=cycleStats(),forecast=$("cycleForecast");
+      if(!stats.last){
+        forecast.innerHTML='<span class="cycle-kicker">Следующие месячные</span><strong class="cycle-big">Добавь первый цикл</strong><span class="cycle-caption">Отметь дату начала — после этого появится прогноз.</span>';
+      }else{
+        const when=stats.daysUntil===0?"сегодня":stats.daysUntil===1?"завтра":stats.daysUntil>1?`через ${stats.daysUntil} ${plural(stats.daysUntil,"день","дня","дней")}`:"в ближайшее время";
+        forecast.innerHTML=`<span class="cycle-kicker">Следующие месячные</span><strong class="cycle-big">${escapeHtml(when)}</strong><span class="cycle-caption">Ориентировочно ${escapeHtml(formatDateTitle(stats.predictedKey))}</span>`;
+      }
+      const ovu=stats.predictedStart?addDays(stats.predictedStart,-14):null;
+      $("cycleSummaryStats").innerHTML=`
+        <div class="cycle-summary-stat"><span>Цикл</span><strong>${stats.cycleLength} дн.</strong></div>
+        <div class="cycle-summary-stat"><span>Месячные</span><strong>${stats.periodLength} дн.</strong></div>
+        <div class="cycle-summary-stat"><span>Овуляция*</span><strong>${ovu?escapeHtml(ovu.toLocaleDateString("ru-RU",{day:"numeric",month:"short"})):"—"}</strong></div>`;
+      const history=$("cycleHistory");history.innerHTML="";
+      if(!stats.cycles.length) history.innerHTML='<div class="subtle">Сохранённых циклов пока нет.</div>';
+      stats.cycles.slice(-6).reverse().forEach(c=>{
+        const row=document.createElement("div");row.className="history-row";
+        const duration=c.end?`${daysBetween(c.start,c.end)+1} ${plural(daysBetween(c.start,c.end)+1,"день","дня","дней")}`:"конец не указан";
+        row.innerHTML=`<div class="history-main"><strong>${escapeHtml(formatDateTitle(c.start))}</strong><br><span>${escapeHtml(duration)}</span></div><button class="icon-btn" title="Удалить">🗑️</button>`;
+        row.querySelector("button").addEventListener("click",()=>deleteCycleEntry(c.id));history.appendChild(row);
+      });
+    }
+
+    function renderCycleCalendar(){
+      const title=$("cycleCalendarTitle");
+      if(cycleCalendarMode==="year"){
+        title.textContent=String(cycleCalendarMonth.getFullYear());
+        renderCycleYear();
+        return;
+      }
+      title.textContent=formatMonthTitle(cycleCalendarMonth);
+      const grid=$("cycleCalendarGrid");grid.innerHTML="";
+      ["П","В","С","Ч","П","С","В"].forEach(d=>{const x=document.createElement("div");x.className="weekday";x.textContent=d;grid.appendChild(x);});
+      const monthStart=startOfMonth(cycleCalendarMonth),first=startOfWeek(monthStart),last=new Date(monthStart.getFullYear(),monthStart.getMonth()+1,0);
+      const marks=cycleMarkSets(first,addDays(first,41));
+      for(let i=0;i<42;i++){
+        const date=addDays(first,i),key=dateKey(date),cell=document.createElement("div");
+        cell.className="day cycle-day";
+        if(date.getMonth()!==cycleCalendarMonth.getMonth())cell.classList.add("outside-month");
+        if(key===todayKey())cell.classList.add("today");
+        if(marks.fertile.has(key))cell.classList.add("fertile");
+        if(marks.ovulation.has(key))cell.classList.add("ovulation");
+        if(marks.predicted.has(key))cell.classList.add("predicted");
+        if(marks.actual.has(key))cell.classList.add("actual");
+        cell.innerHTML=`<span class="day-number">${date.getDate()}</span>`;
+        grid.appendChild(cell);
+      }
+    }
+
+    function renderCycleYear(){
+      const host=$("cycleYearView");host.innerHTML="";
+      const year=cycleCalendarMonth.getFullYear(),rangeStart=new Date(year,0,1),rangeEnd=new Date(year,11,31),marks=cycleMarkSets(rangeStart,rangeEnd);
+      for(let month=0;month<12;month++){
+        const monthDate=new Date(year,month,1),box=document.createElement("div");box.className="cycle-year-month";
+        const title=document.createElement("div");title.className="cycle-year-month-title";title.textContent=monthDate.toLocaleDateString("ru-RU",{month:"long"}).replace(/^./,c=>c.toLocaleUpperCase("ru-RU"));box.appendChild(title);
+        const grid=document.createElement("div");grid.className="cycle-year-grid";
+        const mondayIndex=(monthDate.getDay()+6)%7;
+        for(let i=0;i<mondayIndex;i++){const blank=document.createElement("span");blank.className="cycle-year-day";grid.appendChild(blank);}
+        const days=new Date(year,month+1,0).getDate();
+        for(let day=1;day<=days;day++){
+          const d=new Date(year,month,day),key=dateKey(d),el=document.createElement("span");el.className="cycle-year-day";el.textContent=day;
+          if(key===todayKey())el.classList.add("today");
+          if(marks.fertile.has(key))el.classList.add("fertile");
+          if(marks.ovulation.has(key))el.classList.add("ovulation");
+          if(marks.predicted.has(key))el.classList.add("predicted");
+          if(marks.actual.has(key))el.classList.add("actual");
+          grid.appendChild(el);
+        }
+        box.appendChild(grid);
+        box.addEventListener("click",()=>{cycleCalendarMonth=monthDate;setCycleCalendarMode("month");});
+        host.appendChild(box);
+      }
+    }
 
 
 
